@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.github.darkstarworks"
-version = "1.0.2"
+version = "1.0.3"
 
 repositories {
     mavenCentral()
@@ -42,9 +42,9 @@ tasks.build {
     dependsOn("shadowJar")
 }
 
-// Configure shadowJar to produce '-paper' classifier artifact
+// Configure shadowJar to be the primary artifact (no classifier). The thin development jar uses '-thin' classifier.
 tasks.shadowJar {
-    archiveClassifier.set("paper")
+    archiveClassifier.set("")
 }
 
 tasks.processResources {
@@ -54,4 +54,8 @@ tasks.processResources {
     filesMatching("plugin.yml") {
         expand(props)
     }
+}
+
+tasks.jar {
+    archiveClassifier.set("thin")
 }

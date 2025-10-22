@@ -5,6 +5,14 @@ All notable changes to DupeTrace will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2025-10-22
+
+### Fixed
+- Default artifact is now the shaded jar (no '-paper' suffix) so servers won't hit `NoClassDefFoundError` for Kotlin or other runtime dependencies.
+
+### Changed
+- The thin development jar is published with a `-thin` classifier; most users should use the default jar.
+
 ## [1.0.2] - 2025-10-22
 
 ### Changed
