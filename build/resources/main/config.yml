@@ -2,13 +2,18 @@ database:
   type: h2  # h2 or postgres
   h2:
     # File path without extension; H2 will create .mv.db automatically
-    file: plugins/DupeTrace/data/dupetace
+    file: plugins/DupeTrace/data/dupetrace
   postgres:
     url: jdbc:postgresql://localhost:5432/dupe_trace
     user: postgres
     password: postgres
-  # If true, logs more info to console
+  # If true, logs more info to the console
   debug: false
 
-# Broadcast a warning to all ops when a duplicate is detected
+# Duplicate detection and notifications
 broadcast-duplicates: true
+alert-admins: true
+auto-remove-duplicates: false
+
+# Scanning configuration
+scan-interval: 200  # ticks (200 = 10 seconds)

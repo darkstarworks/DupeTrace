@@ -42,15 +42,26 @@ class DatabaseManager(private val plugin: JavaPlugin) {
 
     private fun createSchema() {
         // Use UUID native type in both databases (supported by Postgres and H2)
-        val create = """
+        val createItems = """
             CREATE TABLE IF NOT EXISTS dupetrace_items (
                 id UUID PRIMARY KEY,
                 first_seen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         """.trimIndent()
+        val createTransfers = """
+            CREATE TABLE IF NOT EXISTS dupetrace_item_transfers (
+                id IDENTITY PRIMARY KEY,
+                item_uuid UUID NOT NULL,
+                player_uuid UUID NOT NULL,
+                action VARCHAR(64) NOT NULL,
+                location TEXT NOT NULL,
+                ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """.trimIndent()
         connection().use { conn ->
             conn.createStatement().use { st ->
-                st.executeUpdate(create)
+                st.executeUpdate(createItems)
+                st.executeUpdate(createTransfers)
             }
         }
     }
@@ -78,6 +89,27 @@ class DatabaseManager(private val plugin: JavaPlugin) {
                     plugin.logger.warning("DB error while recording UUID $id: ${e.message}")
                     // on error, assume duplicate to be safe
                     false
+                }
+            }
+        }
+    }
+
+    /**
+     * Log item transfer/activity with player association.
+     */
+    fun logItemTransfer(itemUUID: String, playerUUID: UUID, action: String, location: String) {
+        val uuid = runCatching { UUID.fromString(itemUUID) }.getOrNull() ?: return
+        val sql = "INSERT INTO dupetrace_item_transfers (item_uuid, player_uuid, action, location) VALUES (?,?,?,?)"
+        connection().use { conn ->
+            conn.prepareStatement(sql).use { ps ->
+                ps.setObject(1, uuid)
+                ps.setObject(2, playerUUID)
+                ps.setString(3, action)
+                ps.setString(4, location)
+                try {
+                    ps.executeUpdate()
+                } catch (e: SQLException) {
+                    plugin.logger.warning("DB error while logging transfer for $uuid: ${e.message}")
                 }
             }
         }

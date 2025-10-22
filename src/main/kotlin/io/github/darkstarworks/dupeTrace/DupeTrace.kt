@@ -2,6 +2,7 @@ package io.github.darkstarworks.dupeTrace
 
 import io.github.darkstarworks.dupeTrace.command.DupeTestCommand
 import io.github.darkstarworks.dupeTrace.db.DatabaseManager
+import io.github.darkstarworks.dupeTrace.listener.ActivityListener
 import io.github.darkstarworks.dupeTrace.listener.InventoryScanListener
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
@@ -18,6 +19,9 @@ class DupeTrace : JavaPlugin() {
 
         // Register listeners
         server.pluginManager.registerEvents(InventoryScanListener(this, db), this)
+        val activityListener = ActivityListener(this, db)
+        server.pluginManager.registerEvents(activityListener, this)
+        activityListener.startPeriodicScan()
 
         // Register commands
         getCommand("dupetest")?.setExecutor(DupeTestCommand(this, db))

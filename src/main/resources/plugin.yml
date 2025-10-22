@@ -16,3 +16,6 @@ permissions:
   dupetrace.admin:
     description: Allows access to DupeTrace admin commands
     default: op
+  dupetrace.alerts:
+    description: Receive duplicate alerts from DupeTrace
+    default: op

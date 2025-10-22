@@ -10,5 +10,10 @@ database:
   # If true, logs more info to the console
   debug: false
 
-# Broadcast a warning to all ops when a duplicate is detected
+# Duplicate detection and notifications
 broadcast-duplicates: true
+alert-admins: true
+auto-remove-duplicates: false
+
+# Scanning configuration
+scan-interval: 200  # ticks (200 = 10 seconds)

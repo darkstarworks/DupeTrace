@@ -22,9 +22,9 @@ class DupeTestCommand(private val plugin: JavaPlugin, private val db: DatabaseMa
             if (id != null) {
                 db.recordSeen(id)
                 sender.inventory.addItem(item)
-                sender.sendMessage("Given a tagged sword with id: $id")
+                sender.sendMessage("Given a Diamond Sword with id: $id")
             } else {
-                sender.sendMessage("Failed to tag item.")
+                sender.sendMessage("Failed to tag item!")
             }
             return true
         }
