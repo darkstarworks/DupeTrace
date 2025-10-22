@@ -5,6 +5,17 @@ All notable changes to DupeTrace will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2025-10-23
+
+### Changed
+- Bumped version to 1.0.4 and verified PaperMC 1.21.x compatibility.
+- Ensured shaded jar remains the default artifact for servers; development jar uses `-dev` classifier.
+- Updated README to reflect correct jar name and version for download and build output.
+
+### Notes
+- The plugin is built against Paper API 1.21.10-R0.1-SNAPSHOT and Java 21.
+- Final jar includes Kotlin stdlib and database drivers (HikariCP, H2, PostgreSQL); size >5MB is expected.
+
 ## [1.0.3] - 2025-10-22
 
 ### Fixed
