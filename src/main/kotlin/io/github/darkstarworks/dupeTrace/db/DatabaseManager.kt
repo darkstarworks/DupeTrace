@@ -32,8 +32,18 @@ class DatabaseManager(private val plugin: JavaPlugin) {
             hikari.password = cfg.getString("database.postgres.password")
             hikari.driverClassName = "org.postgresql.Driver"
         } else {
-            val file = cfg.getString("database.h2.file", "plugins/DupeTrace/data/dupetrace")
-            hikari.jdbcUrl = "jdbc:h2:file:$file;MODE=PostgreSQL;DATABASE_TO_UPPER=false;AUTO_SERVER=TRUE"
+            val rawFile = cfg.getString("database.h2.file", "plugins/DupeTrace/data/dupetrace")
+            val normalizedFile = normalizeH2FilePath(rawFile ?: "plugins/DupeTrace/data/dupetrace")
+            // Ensure parent directories exist for non-home (~) paths
+            if (!normalizedFile.startsWith("~/")) {
+                try {
+                    val parent = java.io.File(normalizedFile).parentFile
+                    parent?.mkdirs()
+                } catch (_: Throwable) {
+                    // ignore, H2 will attempt to create directories as well
+                }
+            }
+            hikari.jdbcUrl = "jdbc:h2:file:$normalizedFile;MODE=PostgreSQL;DATABASE_TO_UPPER=false;AUTO_SERVER=TRUE"
             hikari.driverClassName = "org.h2.Driver"
             hikari.username = "dt"
             hikari.password = ""
@@ -185,6 +195,17 @@ class DatabaseManager(private val plugin: JavaPlugin) {
             }
         }
         return null
+    }
+
+    private fun normalizeH2FilePath(path: String): String {
+        val p = path.trim()
+        // Absolute path? (works for both Unix and Windows)
+        val f = java.io.File(p)
+        if (f.isAbsolute) return f.absolutePath
+        // Allow explicit relative and home-relative paths that H2 understands
+        if (p.startsWith("~/") || p.startsWith("./")) return p
+        // Otherwise, prefix with "./" to make it explicitly relative so H2 2.x accepts it
+        return "./$p"
     }
 
     fun close() {

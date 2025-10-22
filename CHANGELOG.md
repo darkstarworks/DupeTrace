@@ -5,6 +5,11 @@ All notable changes to DupeTrace will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2025-10-22
+
+### Fixed
+- H2 database URL path normalization to comply with H2 2.x; accepts './' or absolute paths and auto-prefixes relative paths to avoid startup failure.
+
 ## [1.0] - 2025-01-XX
 
 ### Added
