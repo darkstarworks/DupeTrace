@@ -23,7 +23,7 @@ class DatabaseManager(private val plugin: JavaPlugin) {
             hikari.password = cfg.getString("database.postgres.password")
             hikari.driverClassName = "org.postgresql.Driver"
         } else {
-            val file = cfg.getString("database.h2.file", "plugins/DupeTrace/data/dupetace")
+            val file = cfg.getString("database.h2.file", "plugins/DupeTrace/data/dupetrace")
             hikari.jdbcUrl = "jdbc:h2:file:$file;MODE=PostgreSQL;DATABASE_TO_UPPER=false;AUTO_SERVER=TRUE"
             hikari.driverClassName = "org.h2.Driver"
             hikari.username = "sa"
@@ -48,7 +48,16 @@ class DatabaseManager(private val plugin: JavaPlugin) {
                 first_seen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         """.trimIndent()
-        val createTransfers = """
+        val createTransfers = if (isPostgres) """
+            CREATE TABLE IF NOT EXISTS dupetrace_item_transfers (
+                id BIGSERIAL PRIMARY KEY,
+                item_uuid UUID NOT NULL,
+                player_uuid UUID NOT NULL,
+                action VARCHAR(64) NOT NULL,
+                location TEXT NOT NULL,
+                ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """.trimIndent() else """
             CREATE TABLE IF NOT EXISTS dupetrace_item_transfers (
                 id IDENTITY PRIMARY KEY,
                 item_uuid UUID NOT NULL,

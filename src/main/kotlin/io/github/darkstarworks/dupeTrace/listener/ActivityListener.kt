@@ -3,7 +3,6 @@ package io.github.darkstarworks.dupeTrace.listener
 import io.github.darkstarworks.dupeTrace.db.DatabaseManager
 import io.github.darkstarworks.dupeTrace.util.ItemIdUtil
 import org.bukkit.*
-import org.bukkit.NamespacedKey
 import org.bukkit.block.Container
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.ItemFrame
@@ -22,14 +21,12 @@ import org.bukkit.event.inventory.*
 import org.bukkit.event.player.*
 import org.bukkit.event.world.LootGenerateEvent
 import org.bukkit.inventory.ItemStack
-import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseManager) : Listener {
 
-    private val itemUuidKey by lazy { NamespacedKey(plugin, "unique_id") }
 
     // Track known items to detect duplicates (in-memory)
     private val knownItems = ConcurrentHashMap<String, ItemLocation>()
@@ -37,7 +34,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     data class ItemLocation(val playerUUID: UUID, val location: String)
 
     // ========== CORE HELPERS ==========
-    private fun locationString(loc: Location): String = $$"${loc.world?.name}:${loc.blockX},${loc.blockY},${loc.blockZ}"
+    private fun locationString(loc: Location): String = "${loc.world?.name}:${loc.blockX},${loc.blockY},${loc.blockZ}"
 
     private fun getUniqueId(item: ItemStack): String? = ItemIdUtil.getId(plugin, item)?.toString()
 
@@ -76,6 +73,30 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
         ItemIdUtil.ensureUniqueId(plugin, result)?.let { db.recordSeen(it) }
     }
 
+    // Loot-generated containers (e.g., structures) should have items tagged at generation time
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onLootGenerate(event: LootGenerateEvent) {
+        event.loot.forEach { item ->
+            ItemIdUtil.ensureUniqueId(plugin, item)?.let { db.recordSeen(it) }
+        }
+    }
+
+    // Ensure villager trade results are tagged as soon as the trade is created
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onVillagerAcquireTrade(event: VillagerAcquireTradeEvent) {
+        val old = event.recipe
+        val result = old.result.clone()
+        ItemIdUtil.ensureUniqueId(plugin, result)?.let { db.recordSeen(it) }
+        val newRecipe = org.bukkit.inventory.MerchantRecipe(result, old.maxUses)
+        newRecipe.setIngredients(old.ingredients)
+        newRecipe.setUses(old.uses)
+        newRecipe.setVillagerExperience(old.villagerExperience)
+        newRecipe.setPriceMultiplier(old.priceMultiplier)
+        // In modern Bukkit, experience reward flag uses hasExperienceReward()/setExperienceReward(boolean)
+        newRecipe.setExperienceReward(runCatching { old.hasExperienceReward() }.getOrDefault(true))
+        event.setRecipe(newRecipe)
+    }
+
 
     // ========== EVENT HANDLERS - ACQUISITION ==========
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -105,6 +126,13 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
         val player = event.player
         event.block.getDrops(player.inventory.itemInMainHand, player).forEach { item ->
             tagAndLog(player, item, "BLOCK_BREAK", event.block.location)
+        }
+        // If a container is being broken, proactively tag its contents as they will drop next
+        val state = event.block.state
+        if (state is Container) {
+            state.inventory.contents.filterNotNull().forEach { item ->
+                ItemIdUtil.ensureUniqueId(plugin, item)?.let { db.recordSeen(it) }
+            }
         }
     }
 
@@ -242,14 +270,14 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
         val current = ItemLocation(player.uniqueId, locationString(player.location))
         val known = knownItems.putIfAbsent(itemUUID, current)
         if (known != null && known != current) {
-            plugin.logger.warning("DUPLICATE DETECTED: Item ${'$'}itemUUID found in multiple locations! Known: ${'$'}known New: ${'$'}current")
+            plugin.logger.warning("DUPLICATE DETECTED: Item $itemUUID found in multiple locations! Known: $known New: $current")
             if (plugin.config.getBoolean("auto-remove-duplicates", false)) {
                 removeDuplicateFromPlayer(player, itemUUID)
             }
             if (plugin.config.getBoolean("alert-admins", true)) {
                 plugin.server.onlinePlayers
                     .filter { it.hasPermission("dupetrace.alerts") }
-                    .forEach { it.sendMessage("§c[DupeTrace] §fItem ${'$'}itemUUID duplicated! Player: ${'$'}{player.name}") }
+                    .forEach { it.sendMessage("§c[DupeTrace] §fItem $itemUUID duplicated! Player: ${player.name}") }
             }
         }
     }

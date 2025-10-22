@@ -29,7 +29,7 @@ class InventoryScanListener(private val plugin: JavaPlugin, private val db: Data
             val firstSeen = db.recordSeen(id)
             if (!firstSeen) {
                 // Duplicate detected
-                val msg = "[DupeTrace] Duplicate item detected: $id in ${'$'}{item.type}"
+                val msg = "[DupeTrace] Duplicate item detected: $id in ${item.type}"
                 plugin.logger.warning(msg)
                 if (plugin.config.getBoolean("broadcast-duplicates", true)) {
                     // Notify ops only
