@@ -1,6 +1,6 @@
 <img width="100" height="100" alt="dupetrace" src="https://github.com/user-attachments/assets/150a0965-cf8f-477c-a57f-8802e4ef7fde" /> 
 
-# $${\color{yellow}DupeTrace}$$ $${\color{yellow}v1.0}$$
+# $${\color{yellow}DupeTrace}$$ $${\color{yellow}v1.0.2}$$
 
 _[pre-release]_
 
