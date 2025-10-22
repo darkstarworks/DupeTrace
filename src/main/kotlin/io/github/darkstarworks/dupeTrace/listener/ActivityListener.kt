@@ -419,13 +419,14 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
             ItemIdUtil.ensureUniqueId(plugin, item)?.let { db.recordSeenAsync(it) }
         }
     }
- 
+
+    // ========== PLAYER QUIT - CLEANUP ==========
      @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
      fun onQuit(event: PlayerQuitEvent) {
          pendingAnvilInputs.remove(event.player.uniqueId)
      }
  
-     // ========== ITEM CONSUME - CLEANUP ==========
+    // ========== ITEM CONSUME - CLEANUP ==========
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onItemConsume(event: PlayerItemConsumeEvent) {
         getUniqueId(event.item)?.let { cleanupKnownItems(it) }
@@ -464,7 +465,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
                 if (item.health <= event.finalDamage) {
                     getUniqueId(item.itemStack)?.let { cleanupKnownItems(it) }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Some server versions may not expose health; fallback when the entity is already dead
                 if (!item.isValid || item.isDead) {
                     getUniqueId(item.itemStack)?.let { cleanupKnownItems(it) }
@@ -597,6 +598,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
         }, interval, interval)
     }
 
+    // ========== ITEM HISTORY - SCAN ==========
     fun startKnownItemsCleanup() {
         val period = 20L * 60 // every 60s
         plugin.server.scheduler.runTaskTimer(plugin, Runnable {

@@ -9,6 +9,9 @@ import java.util.*
 /**
  * Utility object for managing unique IDs on non-stackable items.
  *
+ * Author: darkstarworks | https://github.com/darkstarworks
+ * Donate: https://ko-fi/darkstarworks
+ *
  * This object provides methods to assign and retrieve UUIDs from items using
  * Bukkit's PersistentDataContainer API. Only non-stackable items (maxStackSize == 1)
  * are eligible for UUID tracking.

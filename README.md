@@ -4,6 +4,8 @@
 
 DupeTrace tracks non-stackable items using unique UUIDs and monitors their movements to detect when the same item appears in multiple locations simultaneously. Perfect for preventing duplication glitches on survival servers.
 
+`For Minecraft PaperMC [1.21.10] ` ` » ` ` Updated: 22 oct 2025`
+
 ## Features
 
 - 🔍 **Automatic Duplicate Detection**: Tracks all non-stackable items with unique IDs
@@ -225,3 +227,6 @@ Built with:
 - `HikariCP 5.1.0` - Database connection pooling
 - `H2 2.3.232` - Embedded database
 - `PostgreSQL 42.7.4` - PostgreSQL JDBC driver
+
+# Support Me - This Plugin is Free!
+https://www.ko-fi.com/darkstarworks

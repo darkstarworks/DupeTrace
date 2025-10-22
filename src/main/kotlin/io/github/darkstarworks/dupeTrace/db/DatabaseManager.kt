@@ -10,6 +10,9 @@ import java.util.*
 /**
  * Manages database connections and operations for DupeTrace.
  *
+ * Author: darkstarworks | https://github.com/darkstarworks
+ * Donate: https://ko-fi/darkstarworks
+ *
  * Supports both H2 (embedded) and PostgreSQL databases via HikariCP connection pooling.
  * Handles item UUID registration, transfer logging, and timestamp queries for duplicate detection.
  */

@@ -10,7 +10,8 @@ import org.bukkit.plugin.java.JavaPlugin
  * DupeTrace - A Minecraft plugin for detecting and preventing item duplication.
  *
  * Author: darkstarworks | https://github.com/darkstarworks
- * Donate:
+ * Donate: https://ko-fi/darkstarworks
+ *
  * This plugin tracks non-stackable items using unique UUIDs stored in persistent data containers.
  * It monitors item movements across players, containers, and events to detect when the same
  * item appears in multiple locations simultaneously, indicating a duplication exploit.

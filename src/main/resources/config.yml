@@ -1,27 +1,55 @@
 database:
-  type: h2  # h2 or postgres
+  # DupeTrace currently supports only h2 or PostgreSQL
+  # PostgreSQL is HIGHLY recommended if you have an active server!
+  type: h2 # default: h2
   h2:
     # File path without extension; H2 will create .mv.db automatically
     file: plugins/DupeTrace/data/dupetrace
   postgres:
+    # The requirements for PostgreSQL are already included with PaperMC,
+    # you just need to provide a (remote) database
     url: jdbc:postgresql://localhost:5432/dupe_trace
     user: postgres
     password: postgres
-  # If true, logs more info to the console
-  debug: false
+  # If true, logs A LOT more info to the console
+  debug: false # default: false
 
 # Duplicate detection and notifications
-broadcast-duplicates: true
-alert-admins: true
-auto-remove-duplicates: false
-keep-oldest-on-dup-remove: true  # When removing duplicates automatically, prefer keeping the holder with the earliest recorded interaction
-movement-grace-ms: 750  # Grace window to avoid false positives during rapid legitimate moves
-duplicate-alert-debounce-ms: 2000  # Suppress repeat alerts for the same item within this window
-allow-creative-duplicates: true  # If true, duplicates created in Creative mode are allowed (no alert/removal), but will be tagged as [CREATIVE] in logs
+broadcast-duplicates: true # default: true
 
-# In-memory tracking safety
-known-items-ttl-ms: 600000  # TTL for known item entries (10 minutes) to avoid memory growth
+alert-admins: true # default: true
 
-# Scanning configuration
-scan-interval: 200  # ticks (200 = 10 seconds)
-inventory-open-scan-enabled: true  # If false, skip full scans on inventory open to reduce overhead
+# -- BETA FEATURE --
+# Automatically removing duplicates COULD in very rare cases be triggered by false positives.
+# Please make sure to set [keep-oldest-on-dup-remove: true]
+auto-remove-duplicates: true # default: true
+
+# When above [auto-remove-duplicates: true], keep
+# the oldest recorded version of the item/block
+keep-oldest-on-dup-remove: true # default: true
+
+# The Grace Window is a brief moment where the anti-cheat is a bit more forgiving.
+# It's designed to ignore very fast, legitimate movements (like quick turns or jumps)
+# lower number = stronger detection, but more mistakes
+# higher number = weaker detection, but less mistakes
+movement-grace-ms: 750 # default: 750
+
+# Suppress repeat alerts for the same item within this window
+duplicate-alert-debounce-ms: 2000 # default (milliseconds): 2000
+
+# If [allow-creative-duplicates: true],
+# duplicates created in Creative mode are allowed (no alert/removal),
+# but will be tagged as [CREATIVE] in logs
+allow-creative-duplicates: true # default: true
+
+# In-memory tracking safety to avoid memory growth
+# TTL for known item entries (10 minutes)
+known-items-ttl-ms: 600000 # default (milliseconds): 600000
+
+# Scanning interval configuration in ticks (200 = 10 seconds)
+scan-interval: 200 # default: 200
+
+# If [inventory-open-scan-enabled: false], full inventory scans
+# every time an inventory is opened will be disabled.
+# This reduces overhead significantly on large active playerbases
+inventory-open-scan-enabled: true # default: true
