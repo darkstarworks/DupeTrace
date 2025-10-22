@@ -15,6 +15,12 @@ broadcast-duplicates: true
 alert-admins: true
 auto-remove-duplicates: false
 keep-oldest-on-dup-remove: true  # When removing duplicates automatically, prefer keeping the holder with the earliest recorded interaction
+movement-grace-ms: 750  # Grace window to avoid false positives during rapid legitimate moves
+duplicate-alert-debounce-ms: 2000  # Suppress repeat alerts for the same item within this window
+
+# In-memory tracking safety
+known-items-ttl-ms: 600000  # TTL for known item entries (10 minutes) to avoid memory growth
 
 # Scanning configuration
 scan-interval: 200  # ticks (200 = 10 seconds)
+inventory-open-scan-enabled: true  # If false, skip full scans on inventory open to reduce overhead

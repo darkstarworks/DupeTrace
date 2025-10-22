@@ -33,8 +33,9 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     // ========== TRACK KNOWN ITEMS - IN MEMORY ==========
     private val knownItems = ConcurrentHashMap<String, ItemLocation>()
     private val pendingAnvilInputs = ConcurrentHashMap<UUID, Set<String>>()
+    private val lastAlertTs = ConcurrentHashMap<String, Long>()
 
-    data class ItemLocation(val playerUUID: UUID, val location: String)
+    data class ItemLocation(val playerUUID: UUID, val location: String, val lastSeenMs: Long, val firstSeenMs: Long = lastSeenMs)
 
     // ========== CORE HELPERS ==========
     private fun locationString(loc: Location): String = "${loc.world?.name}:${loc.blockX},${loc.blockY},${loc.blockZ}"
@@ -43,9 +44,37 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
 
     private fun tagAndLog(player: Player, item: ItemStack, action: String, loc: Location) {
         val id = ItemIdUtil.ensureUniqueId(plugin, item) ?: return
+        // If this item is a shulker box, ensure inner contents are tagged too
+        deepTagShulkerContentsIfAny(item)
         db.recordSeenAsync(id)
         db.logItemTransferAsync(id.toString(), player.uniqueId, action, locationString(loc))
         checkForDuplicates(id.toString(), player)
+    }
+
+    private fun deepTagShulkerContentsIfAny(item: ItemStack) {
+        try {
+            val meta = item.itemMeta
+            if (meta is org.bukkit.inventory.meta.BlockStateMeta) {
+                val bs = meta.blockState
+                if (bs is org.bukkit.block.ShulkerBox) {
+                    val inv = bs.inventory
+                    var changed = false
+                    for (i in 0 until inv.size) {
+                        val inner = inv.getItem(i) ?: continue
+                        val innerId = ItemIdUtil.ensureUniqueId(plugin, inner) ?: continue
+                        db.recordSeenAsync(innerId)
+                        inv.setItem(i, inner)
+                        changed = true
+                    }
+                    if (changed) {
+                        meta.blockState = bs
+                        item.itemMeta = meta
+                    }
+                }
+            }
+        } catch (_: Throwable) {
+            // best-effort only
+        }
     }
 
     // ========== CLEANUP HELPERS ==========
@@ -172,7 +201,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     }
 
     // ========== EVENT HANDLERS - INVENTORY INTERACTIONS ==========
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         event.currentItem?.let { tagAndLog(player, it, "INVENTORY_CLICK_CURRENT", player.location) }
@@ -183,7 +212,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     }
 
     // ========== INV DRAGGING - TAG ==========
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onInventoryDrag(event: InventoryDragEvent) {
         val player = event.whoClicked as? Player ?: return
         event.newItems.values.forEach { tagAndLog(player, it, "INVENTORY_DRAG", player.location) }
@@ -194,7 +223,9 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onInventoryOpen(event: InventoryOpenEvent) {
         val player = event.player as? Player ?: return
-        event.inventory.contents.filterNotNull().forEach { tagAndLog(player, it, "INVENTORY_OPEN_SCAN", player.location) }
+        if (plugin.config.getBoolean("inventory-open-scan-enabled", true)) {
+            event.inventory.contents.filterNotNull().forEach { tagAndLog(player, it, "INVENTORY_OPEN_SCAN", player.location) }
+        }
     }
 
     // ========== INV CLOSE - TAG ==========
@@ -206,6 +237,10 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
             db.recordSeenAsync(id)
             checkForDuplicates(id.toString(), player)
         }
+        // Cleanup any pending anvil inputs for this player if applicable
+        if (event.inventory is AnvilInventory) {
+            pendingAnvilInputs.remove(player.uniqueId)
+        }
     }
 
     // ========== ITEM DROP - TAG ==========
@@ -215,6 +250,8 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
         if (id != null) {
             db.recordSeenAsync(id)
             db.logItemTransferAsync(id.toString(), event.player.uniqueId, "DROPPED", locationString(event.itemDrop.location))
+            val now = System.currentTimeMillis()
+            knownItems[id.toString()] = ItemLocation(event.player.uniqueId, locationString(event.itemDrop.location), now, now)
         }
     }
 
@@ -274,8 +311,13 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
             ItemIdUtil.ensureUniqueId(plugin, item)?.let { db.recordSeenAsync(it) }
         }
     }
-
-    // ========== ITEM CONSUME - CLEANUP ==========
+ 
+     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+     fun onQuit(event: PlayerQuitEvent) {
+         pendingAnvilInputs.remove(event.player.uniqueId)
+     }
+ 
+     // ========== ITEM CONSUME - CLEANUP ==========
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onItemConsume(event: PlayerItemConsumeEvent) {
         getUniqueId(event.item)?.let { cleanupKnownItems(it) }
@@ -364,6 +406,12 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     fun onBlockPlace(event: BlockPlaceEvent) {
         // Items like shulker boxes being placed
         getUniqueId(event.itemInHand)?.let { cleanupKnownItems(it) }
+        val state = event.blockPlaced.state
+        if (state is org.bukkit.block.ShulkerBox) {
+            state.inventory.contents.filterNotNull().forEach { item ->
+                ItemIdUtil.ensureUniqueId(plugin, item)?.let { db.recordSeenAsync(it) }
+            }
+        }
     }
 
     // ========== ANVIL CONSUME - CLEANUP ==========
@@ -434,13 +482,20 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     // ========== PERIODIC SCANNING ==========
     fun startPeriodicScan() {
         val interval = plugin.config.getLong("scan-interval", 200L).coerceAtLeast(20L)
-        plugin.server.scheduler.runTaskTimerAsynchronously(plugin, Runnable {
+        plugin.server.scheduler.runTaskTimer(plugin, Runnable {
             plugin.server.onlinePlayers.chunked(10).forEach { batch ->
-                plugin.server.scheduler.runTask(plugin, Runnable {
-                    batch.forEach { scanPlayerInventory(it) }
-                })
+                batch.forEach { scanPlayerInventory(it) }
             }
         }, interval, interval)
+    }
+
+    fun startKnownItemsCleanup() {
+        val period = 20L * 60 // every 60s
+        plugin.server.scheduler.runTaskTimer(plugin, Runnable {
+            val ttlMs = plugin.config.getLong("known-items-ttl-ms", 600_000L).coerceAtLeast(60_000L)
+            val cutoff = System.currentTimeMillis() - ttlMs
+            knownItems.entries.removeIf { it.value.lastSeenMs < cutoff }
+        }, period, period)
     }
 
     // ========== PLAYER INVENTORY - SCAN ==========
@@ -474,61 +529,102 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
 
     // ========== DUPLICATE DETECTION ==========
     private fun checkForDuplicates(itemUUID: String, player: Player) {
-        val current = ItemLocation(player.uniqueId, locationString(player.location))
-        val known = knownItems.putIfAbsent(itemUUID, current)
-        if (known != null && known != current) {
-            plugin.logger.warning("DUPLICATE DETECTED: Item $itemUUID found in multiple locations! Known: $known New: $current")
+        val now = System.currentTimeMillis()
+        val graceMs = plugin.config.getLong("movement-grace-ms", 750L).coerceAtLeast(0L)
+        val current = ItemLocation(player.uniqueId, locationString(player.location), lastSeenMs = now, firstSeenMs = now)
+        val existing = knownItems.putIfAbsent(itemUUID, current)
+        if (existing == null) return
+
+        // Same holder: refresh timestamp/location
+        if (existing.playerUUID == current.playerUUID) {
+            knownItems[itemUUID] = existing.copy(location = current.location, lastSeenMs = now)
+            return
+        }
+
+        // Movement grace: if the last holder was seen very recently, treat as legitimate move
+        if (now - existing.lastSeenMs <= graceMs) {
+            knownItems[itemUUID] = current
+            return
+        }
+
+        fun proceedRemoval(keepKnown: Boolean) {
+            val debounceMs = plugin.config.getLong("duplicate-alert-debounce-ms", 2000L).coerceAtLeast(0L)
+            val last = lastAlertTs[itemUUID] ?: 0L
+            if (now - last >= debounceMs) {
+                plugin.logger.warning("DUPLICATE DETECTED: Item $itemUUID found in multiple locations! Known: $existing New: $current")
+                if (plugin.config.getBoolean("alert-admins", true)) {
+                    plugin.server.onlinePlayers
+                        .filter { it.hasPermission("dupetrace.alerts") }
+                        .forEach { it.sendMessage("§c[DupeTrace] §fItem $itemUUID duplicated! Player: ${player.name}") }
+                }
+                lastAlertTs[itemUUID] = now
+            }
+
             if (plugin.config.getBoolean("auto-remove-duplicates", false)) {
-                if (plugin.config.getBoolean("keep-oldest-on-dup-remove", true)) {
-                    // Decide which holder to keep by earliest transfer timestamp (older wins)
-                    plugin.server.scheduler.runTaskAsynchronously(plugin, Runnable {
-                        val knownTs = runCatching { db.getEarliestTransferTs(itemUUID, known.playerUUID) }.getOrNull()
-                        val currentTs = runCatching { db.getEarliestTransferTs(itemUUID, player.uniqueId) }.getOrNull()
-                        val keepKnown = when {
-                            knownTs == null && currentTs == null -> true
-                            knownTs == null -> false
-                            currentTs == null -> true
-                            else -> knownTs <= currentTs
-                        }
-                        plugin.server.scheduler.runTask(plugin, Runnable {
-                            if (keepKnown) {
-                                // Remove from current player
-                                removeDuplicateFromPlayer(player, itemUUID)
-                            } else {
-                                // Try to remove from previously known holder if online
-                                val target = plugin.server.getPlayer(known.playerUUID)
-                                if (target != null) {
-                                    removeDuplicateFromPlayer(target, itemUUID)
-                                } else {
-                                    plugin.logger.warning("[DupeTrace] Known holder ${known.playerUUID} is offline; removing duplicate from current holder ${player.name} instead.")
-                                    removeDuplicateFromPlayer(player, itemUUID)
-                                }
-                            }
-                        })
-                    })
-                } else {
-                    // Legacy behavior: remove from the player we just checked
+                if (keepKnown) {
                     removeDuplicateFromPlayer(player, itemUUID)
+                } else {
+                    val target = plugin.server.getPlayer(existing.playerUUID)
+                    if (target != null) {
+                        removeDuplicateFromPlayer(target, itemUUID)
+                    } else {
+                        plugin.logger.warning("[DupeTrace] Intended keeper ${existing.playerUUID} is offline; removing from ${player.name} instead.")
+                        removeDuplicateFromPlayer(player, itemUUID)
+                    }
                 }
             }
-            if (plugin.config.getBoolean("alert-admins", true)) {
-                plugin.server.onlinePlayers
-                    .filter { it.hasPermission("dupetrace.alerts") }
-                    .forEach { it.sendMessage("§c[DupeTrace] §fItem $itemUUID duplicated! Player: ${player.name}") }
+            // Update mapping to presumed keeper
+            knownItems[itemUUID] = if (keepKnown) existing.copy(lastSeenMs = now) else current
+        }
+
+        if (plugin.config.getBoolean("keep-oldest-on-dup-remove", true)) {
+            // Prefer in-memory firstSeenMs; fall back to DB if equal or missing
+            val inMemoryKeepKnown = existing.firstSeenMs <= current.firstSeenMs
+            if (existing.firstSeenMs != current.firstSeenMs) {
+                proceedRemoval(inMemoryKeepKnown)
+            } else {
+                plugin.server.scheduler.runTaskAsynchronously(plugin, Runnable {
+                    val knownTs = runCatching { db.getEarliestTransferTs(itemUUID, existing.playerUUID) }.getOrNull()
+                    val currentTs = runCatching { db.getEarliestTransferTs(itemUUID, player.uniqueId) }.getOrNull()
+                    val keepKnown = when {
+                        knownTs == null && currentTs == null -> inMemoryKeepKnown
+                        knownTs == null -> false
+                        currentTs == null -> true
+                        else -> knownTs <= currentTs
+                    }
+                    plugin.server.scheduler.runTask(plugin, Runnable { proceedRemoval(keepKnown) })
+                })
             }
+        } else {
+            // Legacy behavior: remove from the player we just checked
+            proceedRemoval(false)
         }
     }
 
     // ========== DUPLICATE DETECTED - REMOVE ==========
     private fun removeDuplicateFromPlayer(player: Player, itemUUID: String) {
-        var kept = false
         val inv = player.inventory
+        var found = 0
         inv.contents.forEachIndexed { index, item ->
             if (item == null) return@forEachIndexed
             val id = getUniqueId(item)
             if (id == itemUUID) {
-                if (!kept) kept = true else inv.setItem(index, null)
+                found++
+                if (found > 1) {
+                    inv.setItem(index, null)
+                }
             }
+        }
+        if (found <= 1) {
+            plugin.logger.info("[DupeTrace] No extra copies of $itemUUID found in ${player.name}'s inventory to remove.")
+        } else {
+            db.logItemTransferAsync(itemUUID, player.uniqueId, "AUTO_REMOVE_DUPLICATE", locationString(player.location))
+        }
+        // Update in-memory mapping to reflect current owner (if any)
+        if (found >= 1) {
+            knownItems[itemUUID] = ItemLocation(player.uniqueId, locationString(player.location), System.currentTimeMillis())
+        } else {
+            cleanupKnownItems(itemUUID)
         }
     }
 }

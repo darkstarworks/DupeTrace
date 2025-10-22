@@ -22,6 +22,7 @@ class DupeTrace : JavaPlugin() {
         val activityListener = ActivityListener(this, db)
         server.pluginManager.registerEvents(activityListener, this)
         activityListener.startPeriodicScan()
+        activityListener.startKnownItemsCleanup()
 
         // Register commands
         getCommand("dupetest")?.setExecutor(DupeTestCommand(this, db))
