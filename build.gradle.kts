@@ -42,6 +42,11 @@ tasks.build {
     dependsOn("shadowJar")
 }
 
+// Configure shadowJar to produce '-paper' classifier artifact
+tasks.shadowJar {
+    archiveClassifier.set("paper")
+}
+
 tasks.processResources {
     val props = mapOf("version" to version)
     inputs.properties(props)
