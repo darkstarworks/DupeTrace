@@ -1,5 +1,5 @@
 name: DupeTrace
-version: '1.0'
+version: '1.0.2'
 main: io.github.darkstarworks.dupeTrace.DupeTrace
 api-version: '1.21'
 prefix: DT »
