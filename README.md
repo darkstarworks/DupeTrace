@@ -10,7 +10,7 @@ _[pre-release]_
 #### Features
 
 - 🔍 **Automatic Duplicate Detection**: Tracks all non-stackable items with unique IDs
-- 🗃️ **Database Persistence**: Supports both H2 (embedded) and PostgreSQL databases (recommended)
+- 🗃️ **Database Persistence**: Supports ONLY PostgreSQL databases (for size and speed reasons)
 - ⚡ **Real-time Monitoring**: Comprehensive event tracking across inventories, containers, and player interactions
 - 🛡️ **Auto-Removal**: Optional automatic removal of duplicated items
 - 🎨 **Creative Mode Support**: Configurable handling of Creative mode duplication
@@ -24,7 +24,6 @@ _[pre-release]_
 #### Installation
 
 1. Download `DupeTrace-1.0.4-paper.jar` from the [releases page](https://github.com/darkstarworks/DupeTrace/releases)
-   - Do NOT use the `-dev` jar on servers — it omits dependencies and is for development only.
 2. Place the jar file in your server's `plugins/` directory
 3. Restart your server
 4. Configure settings in `plugins/DupeTrace/config.yml` (optional)
@@ -40,60 +39,64 @@ _[pre-release]_
 After first run, edit `plugins/DupeTrace/config.yml`:
 
 ```yaml
-database:
-  # DupeTrace currently supports only h2 or PostgreSQL
-  # PostgreSQL is HIGHLY recommended if you have an active server!
-  type: h2 # default: h2
-  h2:
-    # File path without extension; H2 will create .mv.db automatically
-    file: plugins/DupeTrace/data/dupetrace
+# ==============================
+# DupeTrace Configuration (overview)
+# ==============================
+# How to use:
+# 1) Set your PostgreSQL connection under database.postgres (url/user/password).
+# 2) Restart the server (recommended) after saving changes.
+#
+#  The requirements for PostgreSQL are already included with PaperMC,
+#         you just need to provide a (remote) database
+#
+# About defaults:
+# - Every setting below keeps a short inline comment showing its default value.
+# - If unsure, you can keep the defaults; they are safe for most servers.
+#
+# Overview of settings:
+# database.postgres.url        — JDBC URL to your PostgreSQL database (e.g., jdbc:postgresql://localhost:5432/dupe_trace)
+# database.postgres.user       — Database username
+# database.postgres.password   — Database password
+# database.debug               — Extra verbose DB logging to console (spammy). Default: false
+# broadcast-duplicates         — Broadcast duplicate detections to all players. Default: true
+# alert-admins                 — Send alerts to players with dupetrace.alerts. Default: true
+# auto-remove-duplicates       — BETA: auto-remove extra copies (use with caution). Default: true
+# keep-oldest-on-dup-remove    — When auto-removing, keep the oldest-known copy. Default: true
+# movement-grace-ms            — Grace window to avoid false positives during fast moves. Default: 750
+# duplicate-alert-debounce-ms  — Minimum time between alerts for the same item. Default: 2000
+# allow-creative-duplicates    — Allow duplicates created in Creative (still logged). Default: true
+# known-items-ttl-ms           — TTL for in-memory tracking to cap memory usage. Default: 600000
+# scan-interval                — Periodic scan interval in ticks (20 ticks = 1s). Default: 200
+# inventory-open-scan-enabled  — Scan inventories when they open (more overhead). Default: true
+#
+# Tip: Values ending in -ms are milliseconds.
+
+database: # DupeTrace uses PostgreSQL only!
   postgres:
-    # The requirements for PostgreSQL are already included with PaperMC,
-    # you just need to provide a (remote) database
     url: jdbc:postgresql://localhost:5432/dupe_trace
     user: postgres
     password: postgres
-  # If true, logs A LOT more info to the console
   debug: false # default: false
 
-# Duplicate detection and notifications
 broadcast-duplicates: true # default: true
-
 alert-admins: true # default: true
 
 # -- BETA FEATURE --
 # Automatically removing duplicates COULD in very rare cases be triggered by false positives.
-# Please make sure to set [keep-oldest-on-dup-remove: true]
 auto-remove-duplicates: true # default: true
-
-# When above [auto-remove-duplicates: true], keep
-# the oldest recorded version of the item/block
 keep-oldest-on-dup-remove: true # default: true
+# When above [auto-remove-duplicates: true], it keeps the oldest recorded version of the item/block
 
-# The Grace Window is a brief moment where the anti-cheat is a bit more forgiving.
-# It's designed to ignore very fast, legitimate movements (like quick turns or jumps)
 # lower number = stronger detection, but more mistakes
 # higher number = weaker detection, but less mistakes
 movement-grace-ms: 750 # default: 750
-
-# Suppress repeat alerts for the same item within this window
 duplicate-alert-debounce-ms: 2000 # default (milliseconds): 2000
-
-# If [allow-creative-duplicates: true],
-# duplicates created in Creative mode are allowed (no alert/removal),
-# but will be tagged as [CREATIVE] in logs
 allow-creative-duplicates: true # default: true
-
-# In-memory tracking safety to avoid memory growth
-# TTL for known item entries (10 minutes)
 known-items-ttl-ms: 600000 # default (milliseconds): 600000
-
-# Scanning interval configuration in ticks (200 = 10 seconds)
 scan-interval: 200 # default: 200
 
-# If [inventory-open-scan-enabled: false], full inventory scans
-# every time an inventory is opened will be disabled.
-# This reduces overhead significantly on large active playerbases
+# If [inventory-open-scan-enabled: false], full inventory scans will be disabled.
+# This reduces overhead Significantly on large active playerbases
 inventory-open-scan-enabled: true # default: true
 ```
 
@@ -104,32 +107,31 @@ inventory-open-scan-enabled: true # default: true
 
 ### Commands
 
-- `/dupetest give` - Gives a test diamond sword with a unique ID for testing the system
+- `/dupetest give [player]` - Gives a test diamond sword with a unique ID for testing the system
 
 ---
 
-## Troubleshooting
+## Troubleshooting Q&A
 
-### "Duplicate detected" but it's a false positive
+### Q: "Duplicate detected" but it's a false positive
 
-Increase `movement-grace-ms` in config.yml to give more time for legitimate item transfers.
+A: Increase `movement-grace-ms` in config.yml to give more time for legitimate item transfers.
 
-### High memory usage
+### Q: High memory usage
 
-Reduce `known-items-ttl-ms` or `scan-interval` to decrease memory footprint.
+A: Reduce `known-items-ttl-ms` or `scan-interval` to decrease memory footprint.
 
-### Items not being tracked
+### Q: Items not being tracked
 
-Ensure the items are non-stackable (max stack size of 1). Stackable items like diamonds or stone cannot be tracked individually.
+A: Ensure the items are non-stackable (max stack size of 1). Stackable items like diamonds or stone cannot be tracked individually.
 
-### Database connection errors
+### Q: Database connection errors
 
-- For H2: Ensure the plugin has write permissions to the `plugins/DupeTrace/data/` directory
-- For PostgreSQL: Verify the database exists and credentials are correct
+- Verify your database exists and the credentials are correct
 
 ---
 
-## Developer Guide
+## Developer DIY Guide
 
 ### Prerequisites
 
@@ -256,15 +258,14 @@ Built with:
 - [PaperMC](https://papermc.io/) - High-performance Minecraft server
 - [Kotlin](https://kotlinlang.org/) - Modern JVM language
 - [HikariCP](https://github.com/brettwooldridge/HikariCP) - Fast connection pooling
-- [H2 Database](https://www.h2database.com/) - Embedded SQL database
 - [Gradle](https://gradle.org/) - Build automation
 
 ### Dependencies (Shaded into Plugin)
 
 - `kotlin-stdlib-jdk8` - Kotlin standard library
 - `HikariCP 5.1.0` - Database connection pooling
-- `H2 2.3.232` - Embedded database
 - `PostgreSQL 42.7.4` - PostgreSQL JDBC driver
+- `adventure MiniMessage 4.25.0` - Minecraft Java UI Library
 
-# Support Me - This Plugin is Free!
+## Support Me - This Plugin is Free! ❤️
 https://www.ko-fi.com/darkstarworks
