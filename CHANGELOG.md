@@ -9,9 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Default artifact is now the shaded jar (no '-paper' suffix) so servers won't hit `NoClassDefFoundError` for Kotlin or other runtime dependencies.
+- Added a friendly startup check that logs a clear error and disables the plugin if runtime dependencies are missing (e.g., when accidentally using the dev jar on a server).
 
 ### Changed
-- The thin development jar is published with a `-thin` classifier; most users should use the default jar.
+- The development jar is now published with a `-dev` classifier (renamed from `-thin`) to make its purpose clearer; most users should use the default shaded jar.
 
 ## [1.0.2] - 2025-10-22
 

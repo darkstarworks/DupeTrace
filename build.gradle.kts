@@ -57,5 +57,5 @@ tasks.processResources {
 }
 
 tasks.jar {
-    archiveClassifier.set("thin")
+    archiveClassifier.set("dev")
 }

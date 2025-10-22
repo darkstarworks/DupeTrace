@@ -1,6 +1,6 @@
 <img width="100" height="100" alt="dupetrace" src="https://github.com/user-attachments/assets/150a0965-cf8f-477c-a57f-8802e4ef7fde" /> 
 
-# $${\color{yellow}DupeTrace}$$ $${\color{yellow}v1.0.2}$$
+# $${\color{yellow}DupeTrace}$$ $${\color{yellow}v1.0.3}$$
 
 _[pre-release]_
 
@@ -23,7 +23,8 @@ _[pre-release]_
 
 #### Installation
 
-1. Download `DupeTrace-1.0-paper.jar` from the [releases page](https://github.com/darkstarworks/DupeTrace/releases)
+1. Download `DupeTrace-1.0.3.jar` (no classifier) from the [releases page](https://github.com/darkstarworks/DupeTrace/releases)
+   - Do NOT use the `-dev` jar on servers — it omits dependencies and is for development only.
 2. Place the jar file in your server's `plugins/` directory
 3. Restart your server
 4. Configure settings in `plugins/DupeTrace/config.yml` (optional)

@@ -60,23 +60,32 @@ class DupeTrace : JavaPlugin() {
     }
 
     override fun onEnable() {
-        // Plugin startup logic
-        saveDefaultConfig()
-        validateConfiguration()
-        db = DatabaseManager(this)
-        db.init()
+        try {
+            // Plugin startup logic
+            saveDefaultConfig()
+            validateConfiguration()
+            db = DatabaseManager(this)
+            db.init()
 
-        // Register listeners
-        server.pluginManager.registerEvents(InventoryScanListener(this, db), this)
-        val activityListener = ActivityListener(this, db)
-        server.pluginManager.registerEvents(activityListener, this)
-        activityListener.startPeriodicScan()
-        activityListener.startKnownItemsCleanup()
+            // Register listeners
+            server.pluginManager.registerEvents(InventoryScanListener(this, db), this)
+            val activityListener = ActivityListener(this, db)
+            server.pluginManager.registerEvents(activityListener, this)
+            activityListener.startPeriodicScan()
+            activityListener.startKnownItemsCleanup()
 
-        // Register commands
-        getCommand("dupetest")?.setExecutor(DupeTestCommand(this, db))
+            // Register commands
+            getCommand("dupetest")?.setExecutor(DupeTestCommand(this, db))
 
-        logger.info("DupeTrace enabled. Using ${config.getString("database.type", "h2")} database.")
+            logger.info("DupeTrace enabled. Using ${config.getString("database.type", "h2")} database.")
+        } catch (e: NoClassDefFoundError) {
+            logger.severe("Missing runtime dependency: ${e.message}. You are likely running the development jar (with '-dev' or '-thin' suffix) which omits dependencies. Please use the default DupeTrace-${description.version}.jar (shaded) in production.")
+            // Disable the plugin gracefully
+            server.pluginManager.disablePlugin(this)
+        } catch (e: ClassNotFoundException) {
+            logger.severe("Missing runtime class: ${e.message}. Please use the default shaded DupeTrace-${description.version}.jar and do not use the '-dev' jar on servers.")
+            server.pluginManager.disablePlugin(this)
+        }
     }
 
     override fun onDisable() {
