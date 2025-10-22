@@ -1,12 +1,12 @@
 name: DupeTrace
-version: '0.8'
+version: '1.0'
 main: io.github.darkstarworks.dupeTrace.DupeTrace
 api-version: '1.21'
 prefix: DT »
 load: STARTUP
 authors: [ darkstarworks ]
-description: Detect and trace duplicated items using per-item UUIDs and database persistence
-website: https://github.com/darkstarworks
+description: Detect and prevent item duplication exploits using per-item UUID tracking and database persistence
+website: https://github.com/darkstarworks/DupeTrace
 commands:
   dupetest:
     description: Give a test item with a unique ID and record it

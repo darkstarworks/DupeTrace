@@ -7,6 +7,12 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.util.*
 
+/**
+ * Manages database connections and operations for DupeTrace.
+ *
+ * Supports both H2 (embedded) and PostgreSQL databases via HikariCP connection pooling.
+ * Handles item UUID registration, transfer logging, and timestamp queries for duplicate detection.
+ */
 class DatabaseManager(private val plugin: JavaPlugin) {
     private var dataSource: HikariDataSource? = null
     private var isPostgres: Boolean = false
@@ -102,7 +108,10 @@ class DatabaseManager(private val plugin: JavaPlugin) {
     }
 
     /**
-     * Records that this UUID is seen. Returns true if it's new, false if it already existed (duplicate detected).
+     * Records that an item UUID has been seen.
+     *
+     * @param id The UUID of the item
+     * @return true if this is the first time seeing this UUID (new), false if it already existed (duplicate)
      */
     fun recordSeen(id: UUID): Boolean {
         val sql = if (isPostgres) {

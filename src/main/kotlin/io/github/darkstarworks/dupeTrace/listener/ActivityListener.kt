@@ -87,8 +87,9 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
                     }
                 }
             }
-        } catch (_: Throwable) {
-            // best-effort only
+        } catch (e: Exception) {
+            // best-effort only; shulker box meta may not be accessible in all contexts
+            plugin.logger.fine("Could not tag shulker contents: ${e.message}")
         }
     }
 
@@ -125,13 +126,15 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
                         val m = meta.javaClass.getMethod("setItems", List::class.java)
                         m.invoke(meta, newItems)
                         item.itemMeta = meta
-                    } catch (_: Throwable) {
-                        // ignore
+                    } catch (e: Exception) {
+                        // Reflection fallback failed
+                        plugin.logger.fine("Could not set bundle items via reflection: ${e.message}")
                     }
                 }
             }
-        } catch (_: Throwable) {
+        } catch (e: Exception) {
             // best-effort only; BundleMeta may not exist on older APIs
+            plugin.logger.fine("Could not tag bundle contents: ${e.message}")
         }
     }
 
@@ -461,7 +464,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
                 if (item.health <= event.finalDamage) {
                     getUniqueId(item.itemStack)?.let { cleanupKnownItems(it) }
                 }
-            } catch (_: Throwable) {
+            } catch (e: Exception) {
                 // Some server versions may not expose health; fallback when the entity is already dead
                 if (!item.isValid || item.isDead) {
                     getUniqueId(item.itemStack)?.let { cleanupKnownItems(it) }
