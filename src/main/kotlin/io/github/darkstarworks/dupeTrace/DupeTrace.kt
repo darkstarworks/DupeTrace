@@ -79,11 +79,11 @@ class DupeTrace : JavaPlugin() {
 
             logger.info("DupeTrace enabled. Using ${config.getString("database.type", "h2")} database.")
         } catch (e: NoClassDefFoundError) {
-            logger.severe("Missing runtime dependency: ${e.message}. You are likely running the development jar (with '-dev' or '-thin' suffix) which omits dependencies. Please use the default DupeTrace-${description.version}.jar (shaded) in production.")
+            logger.severe("Missing runtime dependency: ${e.message}. You are likely running the development jar (with '-dev' suffix) which omits dependencies. Please use DupeTrace-${description.version}-paper.jar (shaded) in production.")
             // Disable the plugin gracefully
             server.pluginManager.disablePlugin(this)
         } catch (e: ClassNotFoundException) {
-            logger.severe("Missing runtime class: ${e.message}. Please use the default shaded DupeTrace-${description.version}.jar and do not use the '-dev' jar on servers.")
+            logger.severe("Missing runtime class: ${e.message}. Please use the shaded DupeTrace-${description.version}-paper.jar and do not use the '-dev' jar on servers.")
             server.pluginManager.disablePlugin(this)
         }
     }

@@ -42,9 +42,9 @@ tasks.build {
     dependsOn("shadowJar")
 }
 
-// Configure shadowJar to be the primary artifact (no classifier). The thin development jar uses '-thin' classifier.
+// Configure shadowJar to produce the server-ready shaded jar with '-paper' classifier.
 tasks.shadowJar {
-    archiveClassifier.set("")
+    archiveClassifier.set("paper")
 }
 
 tasks.processResources {

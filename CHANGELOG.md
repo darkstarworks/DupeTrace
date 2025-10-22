@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Bumped version to 1.0.4 and verified PaperMC 1.21.x compatibility.
-- Ensured shaded jar remains the default artifact for servers; development jar uses `-dev` classifier.
-- Updated README to reflect correct jar name and version for download and build output.
+- Shaded server artifact is now published as `-paper` classifier: DupeTrace-1.0.4-paper.jar; development jar uses `-dev` classifier (no dependencies).
+- Updated README to reflect the -paper jar name and build output path.
 
 ### Notes
 - The plugin is built against Paper API 1.21.10-R0.1-SNAPSHOT and Java 21.

@@ -23,7 +23,7 @@ _[pre-release]_
 
 #### Installation
 
-1. Download `DupeTrace-1.0.4.jar` (no classifier) from the [releases page](https://github.com/darkstarworks/DupeTrace/releases)
+1. Download `DupeTrace-1.0.4-paper.jar` from the [releases page](https://github.com/darkstarworks/DupeTrace/releases)
    - Do NOT use the `-dev` jar on servers — it omits dependencies and is for development only.
 2. Place the jar file in your server's `plugins/` directory
 3. Restart your server
@@ -178,7 +178,7 @@ DupeTrace/
 ./gradlew clean build
 ```
 
-The shaded jar for deployment will be at: `build/libs/DupeTrace-1.0.4.jar`
+The shaded jar for deployment will be at: `build/libs/DupeTrace-1.0.4-paper.jar`
 
 ### Running a Development Server
 
