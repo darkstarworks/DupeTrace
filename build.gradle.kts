@@ -1,11 +1,11 @@
 plugins {
-    kotlin("jvm") version "2.3.0-Beta1"
+    kotlin("jvm") version "2.0.21"
     id("com.gradleup.shadow") version "8.3.0"
     id("xyz.jpenilla.run-paper") version "2.3.1"
 }
 
 group = "io.github.darkstarworks"
-version = "1.0.4"
+version = "1.0.5"
 
 repositories {
     mavenCentral()
@@ -20,8 +20,10 @@ dependencies {
 
     // Database and pooling
     implementation("com.zaxxer:HikariCP:5.1.0")
-    implementation("com.h2database:h2:2.3.232")
     implementation("org.postgresql:postgresql:42.7.4")
+
+    // Chat formatting (MiniMessage)
+    implementation("net.kyori:adventure-text-minimessage:4.17.0")
 }
 
 tasks {

@@ -1,14 +1,38 @@
+# ==============================
+# DupeTrace Configuration (overview)
+# ==============================
+# How to use:
+# 1) Set your PostgreSQL connection under database.postgres (url/user/password).
+# 2) Restart the server (recommended) after saving changes.
+#
+# About defaults:
+# - Every setting below keeps a short inline comment showing its default value.
+# - If unsure, you can keep the defaults; they are safe for most servers.
+#
+# Overview of settings:
+# database.postgres.url        — JDBC URL to your PostgreSQL database (e.g., jdbc:postgresql://localhost:5432/dupe_trace)
+# database.postgres.user       — Database username
+# database.postgres.password   — Database password
+# database.debug               — Extra verbose DB logging to console (spammy). Default: false
+# broadcast-duplicates         — Broadcast duplicate detections to all players. Default: true
+# alert-admins                 — Send alerts to players with dupetrace.alerts. Default: true
+# auto-remove-duplicates       — BETA: auto-remove extra copies (use with caution). Default: true
+# keep-oldest-on-dup-remove    — When auto-removing, keep the oldest-known copy. Default: true
+# movement-grace-ms            — Grace window to avoid false positives during fast moves. Default: 750
+# duplicate-alert-debounce-ms  — Minimum time between alerts for the same item. Default: 2000
+# allow-creative-duplicates    — Allow duplicates created in Creative (still logged). Default: true
+# known-items-ttl-ms           — TTL for in-memory tracking to cap memory usage. Default: 600000
+# scan-interval                — Periodic scan interval in ticks (20 ticks = 1s). Default: 200
+# inventory-open-scan-enabled  — Scan inventories when they open (more overhead). Default: true
+#
+# Tip: Values ending in -ms are milliseconds.
+
 database:
-  # DupeTrace currently supports only h2 or PostgreSQL
-  # PostgreSQL is HIGHLY recommended if you have an active server!
-  type: h2 # default: h2
-  h2:
-    # File path without extension; H2 will create .mv.db automatically
-    file: plugins/DupeTrace/data/dupetrace
+  # DupeTrace uses PostgreSQL only
   postgres:
     # The requirements for PostgreSQL are already included with PaperMC,
     # you just need to provide a (remote) database
-    url: jdbc:postgresql://localhost:5432/dupe_trace
+    url: jdbc:postgresql://45.77.251.178:5432/dupe_trace
     user: postgres
     password: postgres
   # If true, logs A LOT more info to the console
