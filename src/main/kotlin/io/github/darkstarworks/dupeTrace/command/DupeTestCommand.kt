@@ -20,7 +20,7 @@ class DupeTestCommand(private val plugin: JavaPlugin, private val db: DatabaseMa
             val item = ItemStack(Material.DIAMOND_SWORD)
             val id = ItemIdUtil.ensureUniqueId(plugin, item)
             if (id != null) {
-                db.recordSeen(id)
+                db.recordSeenAsync(id)
                 sender.inventory.addItem(item)
                 sender.sendMessage("Given a Diamond Sword with id: $id")
             } else {

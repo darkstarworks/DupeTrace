@@ -14,6 +14,7 @@ database:
 broadcast-duplicates: true
 alert-admins: true
 auto-remove-duplicates: false
+keep-oldest-on-dup-remove: true  # When removing duplicates automatically, prefer keeping the holder with the earliest recorded interaction
 
 # Scanning configuration
 scan-interval: 200  # ticks (200 = 10 seconds)

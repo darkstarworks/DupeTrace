@@ -31,7 +31,7 @@ class DupeTrace : JavaPlugin() {
         // Optional: schedule a delayed scan for online players after plugins enable
         Bukkit.getScheduler().runTaskLater(this, Runnable {
             server.onlinePlayers.forEach { p ->
-                p.inventory.contents.filterNotNull().forEach { /* trigger ensure on listener via click? optionally no-op */ }
+                repeat(p.inventory.contents.filterNotNull().size) { _ -> /* trigger ensure on listener via click? optionally no-op */ }
             }
         }, 40L)
     }

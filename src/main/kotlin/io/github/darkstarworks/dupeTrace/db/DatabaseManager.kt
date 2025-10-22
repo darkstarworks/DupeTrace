@@ -26,7 +26,7 @@ class DatabaseManager(private val plugin: JavaPlugin) {
             val file = cfg.getString("database.h2.file", "plugins/DupeTrace/data/dupetrace")
             hikari.jdbcUrl = "jdbc:h2:file:$file;MODE=PostgreSQL;DATABASE_TO_UPPER=false;AUTO_SERVER=TRUE"
             hikari.driverClassName = "org.h2.Driver"
-            hikari.username = "sa"
+            hikari.username = "dt"
             hikari.password = ""
         }
         hikari.maximumPoolSize = 5
@@ -34,6 +34,32 @@ class DatabaseManager(private val plugin: JavaPlugin) {
 
         dataSource = HikariDataSource(hikari)
         createSchema()
+    }
+
+    /**
+     * Fire-and-forget async wrapper. Schedules DB write-off in the main thread.
+     */
+    fun recordSeenAsync(id: UUID) {
+        plugin.server.scheduler.runTaskAsynchronously(plugin, Runnable {
+            try {
+                recordSeen(id)
+            } catch (t: Throwable) {
+                plugin.logger.warning("Async recordSeen failed for $id: ${t.message}")
+            }
+        })
+    }
+
+    /**
+     * Fire-and-forget async wrapper. Schedules DB write-off in the main thread.
+     */
+    fun logItemTransferAsync(itemUUID: String, playerUUID: UUID, action: String, location: String) {
+        plugin.server.scheduler.runTaskAsynchronously(plugin, Runnable {
+            try {
+                logItemTransfer(itemUUID, playerUUID, action, location)
+            } catch (t: Throwable) {
+                plugin.logger.warning("Async logItemTransfer failed for $itemUUID: ${t.message}")
+            }
+        })
     }
 
     private fun connection(): Connection {
@@ -122,6 +148,31 @@ class DatabaseManager(private val plugin: JavaPlugin) {
                 }
             }
         }
+    }
+
+    /**
+     * Return the earliest timestamp (epoch millis) when this player was recorded interacting with this item.
+     * Returns null if no transfer records exist.
+     */
+    fun getEarliestTransferTs(itemUUID: String, playerUUID: UUID): Long? {
+        val uuid = runCatching { UUID.fromString(itemUUID) }.getOrNull() ?: return null
+        val sql = "SELECT MIN(ts) FROM dupetrace_item_transfers WHERE item_uuid = ? AND player_uuid = ?"
+        connection().use { conn ->
+            conn.prepareStatement(sql).use { ps ->
+                ps.setObject(1, uuid)
+                ps.setObject(2, playerUUID)
+                try {
+                    ps.executeQuery().use { rs ->
+                        if (rs.next()) {
+                            return rs.getTimestamp(1)?.time
+                        }
+                    }
+                } catch (e: SQLException) {
+                    plugin.logger.warning("DB error while fetching earliest transfer for $uuid/$playerUUID: ${e.message}")
+                }
+            }
+        }
+        return null
     }
 
     fun close() {

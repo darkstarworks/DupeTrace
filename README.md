@@ -115,3 +115,7 @@ Appendix: File snippets referenced
   }
 
 If you need any adjustments (e.g., targeting a different Paper version or adding CI), let us know.
+
+14) DupeTrace configuration highlights
+- auto-remove-duplicates: If true, the plugin will try to automatically remove duplicate copies of the same non-stackable item when detected.
+- keep-oldest-on-dup-remove: When auto-removal is enabled, prefer keeping the holder (player) with the earliest recorded interaction with the item (based on dupetrace_item_transfers timestamps). If the intended holder is offline, removal falls back to the current holder.

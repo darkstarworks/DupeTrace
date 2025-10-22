@@ -18,7 +18,7 @@ class InventoryScanListener(private val plugin: JavaPlugin, private val db: Data
 
     @EventHandler
     fun onInventoryClick(e: InventoryClickEvent) {
-        val who = e.whoClicked ?: return
+        val who = e.whoClicked
         val items = who.inventory.contents.filterNotNull()
         scanPlayer(items)
     }
