@@ -1,0 +1,9 @@
+name: DupeTrace
+version: '0.1'
+main: io.github.darkstarworks.dupeTrace.DupeTrace
+api-version: '1.21'
+prefix: DT »
+load: STARTUP
+authors: [ darkstarworks ]
+description: Custom Items for ESMP
+website: https://github.com/darkstarworks
