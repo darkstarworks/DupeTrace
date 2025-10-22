@@ -110,25 +110,19 @@ inventory-open-scan-enabled: true # default: true
 - `/dupetest give [player]` - Gives a test diamond sword with a unique ID for testing the system
 
 ---
-
 ## Troubleshooting Q&A
 
-### Q: "Duplicate detected" but it's a false positive
+> #### Q: "Duplicate detected" but it's a false positive
+> #### A: Increase `movement-grace-ms` in config.yml to give more time for legitimate item transfers.
 
-A: Increase `movement-grace-ms` in config.yml to give more time for legitimate item transfers.
+> #### Q: High memory usage
+> #### A: Reduce `known-items-ttl-ms` or `scan-interval` to decrease memory footprint.
 
-### Q: High memory usage
+> #### Q: Items not being tracked
+> #### A: Ensure the items are non-stackable (max stack size of 1). Stackable items like diamonds or stone cannot be tracked individually.
 
-A: Reduce `known-items-ttl-ms` or `scan-interval` to decrease memory footprint.
-
-### Q: Items not being tracked
-
-A: Ensure the items are non-stackable (max stack size of 1). Stackable items like diamonds or stone cannot be tracked individually.
-
-### Q: Database connection errors
-
-- Verify your database exists and the credentials are correct
-
+> #### Q: Database connection errors
+> #### A: Verify your database exists and the credentials are correct
 ---
 
 ## Developer DIY Guide
