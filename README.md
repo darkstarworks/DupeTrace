@@ -216,7 +216,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/darkstarworks/DupeTrace/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/darkstarworks/DupeTrace/discussions)
+- **Discussions**: ![flat](https://dcbadge.limes.pink/api/server/https://discord.gg/aWMU2JNXex?style=flat)
 
 ---
 
