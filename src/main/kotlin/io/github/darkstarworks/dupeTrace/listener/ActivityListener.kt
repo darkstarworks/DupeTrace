@@ -35,17 +35,32 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     private val pendingAnvilInputs = ConcurrentHashMap<UUID, Set<String>>()
     private val lastAlertTs = ConcurrentHashMap<String, Long>()
 
+    // Pseudo owners for non-player holders
+    private val ownerItemFrame: UUID = UUID(0L, 1L)
+    private val ownerArmorStand: UUID = UUID(0L, 2L)
+    private val ownerContainer: UUID = UUID(0L, 3L)
+
     data class ItemLocation(val playerUUID: UUID, val location: String, val lastSeenMs: Long, val firstSeenMs: Long = lastSeenMs)
 
     // ========== CORE HELPERS ==========
     private fun locationString(loc: Location): String = "${loc.world?.name}:${loc.blockX},${loc.blockY},${loc.blockZ}"
 
+    private fun holderLocationString(holder: org.bukkit.inventory.InventoryHolder?): String {
+        if (holder == null) return "unknown:0,0,0"
+        return when (holder) {
+            is org.bukkit.block.BlockState -> locationString(holder.location)
+            is org.bukkit.entity.Entity -> locationString(holder.location)
+            else -> "unknown:0,0,0"
+        }
+    }
+
     private fun getUniqueId(item: ItemStack): String? = ItemIdUtil.getId(plugin, item)?.toString()
 
     private fun tagAndLog(player: Player, item: ItemStack, action: String, loc: Location) {
         val id = ItemIdUtil.ensureUniqueId(plugin, item) ?: return
-        // If this item is a shulker box, ensure inner contents are tagged too
+        // If this item is a Shulker Box or bundle, ensure inner contents are tagged too
         deepTagShulkerContentsIfAny(item)
+        deepTagBundleContentsIfAny(item)
         db.recordSeenAsync(id)
         db.logItemTransferAsync(id.toString(), player.uniqueId, action, locationString(loc))
         checkForDuplicates(id.toString(), player)
@@ -74,6 +89,49 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
             }
         } catch (_: Throwable) {
             // best-effort only
+        }
+    }
+
+    private fun deepTagBundleContentsIfAny(item: ItemStack) {
+        try {
+            val meta = item.itemMeta
+            if (meta is org.bukkit.inventory.meta.BundleMeta) {
+                val items = meta.items
+                var changed = false
+                if (items is MutableList<ItemStack?>) {
+                    for (i in items.indices) {
+                        val inner = items[i] ?: continue
+                        val copy = inner.clone()
+                        val innerId = ItemIdUtil.ensureUniqueId(plugin, copy)
+                        if (innerId != null) {
+                            db.recordSeenAsync(innerId)
+                            items[i] = copy
+                            changed = true
+                        }
+                    }
+                    if (changed) {
+                        item.itemMeta = meta
+                    }
+                } else {
+                    // Fallback: try reflection to call setItems(List)
+                    try {
+                        val newItems = items.map { inner ->
+                            if (inner == null) return@map null
+                            val copy = inner.clone()
+                            val innerId = ItemIdUtil.ensureUniqueId(plugin, copy)
+                            if (innerId != null) db.recordSeenAsync(innerId)
+                            copy
+                        }
+                        val m = meta.javaClass.getMethod("setItems", List::class.java)
+                        m.invoke(meta, newItems)
+                        item.itemMeta = meta
+                    } catch (_: Throwable) {
+                        // ignore
+                    }
+                }
+            }
+        } catch (_: Throwable) {
+            // best-effort only; BundleMeta may not exist on older APIs
         }
     }
 
@@ -194,7 +252,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     // ========== SHEARING - TAG ==========
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onShear(event: PlayerShearEntityEvent) {
-        // Shearing happens after event; scan next tick
+        // Shearing happens after the event; scan next tick
         plugin.server.scheduler.runTask(plugin, Runnable {
             scanPlayerInventory(event.player)
         })
@@ -219,6 +277,23 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
         tagAndLog(player, event.oldCursor, "INVENTORY_OLD_CURSOR", player.location)
     }
 
+    // ========== CREATIVE INVENTORY - TAG & DUPLICATE CONTEXT ==========
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onInventoryCreative(event: InventoryCreativeEvent) {
+        val player = event.whoClicked as? Player ?: return
+        val locStr = locationString(player.location)
+        val items = listOf(event.currentItem, event.cursor)
+        items.forEach { item ->
+            if (item == null) return@forEach
+            val id = ItemIdUtil.ensureUniqueId(plugin, item)
+            if (id != null) {
+                db.recordSeenAsync(id)
+                db.logItemTransferAsync(id.toString(), player.uniqueId, "CREATIVE_INVENTORY", locStr)
+                checkForDuplicates(id.toString(), player, setOf("CREATIVE"))
+            }
+        }
+    }
+
     // ========== INV OPEN - TAG ==========
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onInventoryOpen(event: InventoryOpenEvent) {
@@ -237,7 +312,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
             db.recordSeenAsync(id)
             checkForDuplicates(id.toString(), player)
         }
-        // Cleanup any pending anvil inputs for this player if applicable
+        // Clean up any pending anvil inputs for this player if applicable
         if (event.inventory is AnvilInventory) {
             pendingAnvilInputs.remove(player.uniqueId)
         }
@@ -259,11 +334,17 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onDeath(event: PlayerDeathEvent) {
         val p = event.entity
+        val deathLoc = locationString(p.location)
+        val now = System.currentTimeMillis()
         event.drops.forEach { item ->
             val id = ItemIdUtil.ensureUniqueId(plugin, item)
             if (id != null) {
                 db.recordSeenAsync(id)
-                db.logItemTransferAsync(id.toString(), p.uniqueId, "DEATH_DROP", locationString(p.location))
+                db.logItemTransferAsync(id.toString(), p.uniqueId, "DEATH_DROP", deathLoc)
+                val idStr = id.toString()
+                val existing = knownItems[idStr]
+                val first = existing?.firstSeenMs ?: now
+                knownItems[idStr] = ItemLocation(p.uniqueId, deathLoc, now, first)
             }
         }
     }
@@ -273,9 +354,16 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     fun onItemFrame(event: PlayerInteractEntityEvent) {
         if (event.rightClicked.type != EntityType.ITEM_FRAME && event.rightClicked.type != EntityType.GLOW_ITEM_FRAME) return
         val frame = event.rightClicked as ItemFrame
+        val now = System.currentTimeMillis()
         val frameItem = frame.item
         if (frameItem.type != Material.AIR) {
-            ItemIdUtil.ensureUniqueId(plugin, frameItem)?.let { db.recordSeenAsync(it) }
+            ItemIdUtil.ensureUniqueId(plugin, frameItem)?.let {
+                db.recordSeenAsync(it)
+                val idStr = it.toString()
+                val existing = knownItems[idStr]
+                val first = existing?.firstSeenMs ?: now
+                knownItems[idStr] = ItemLocation(ownerItemFrame, locationString(frame.location), now, first)
+            }
         }
         val handItem = event.player.inventory.itemInMainHand
         if (handItem.type != Material.AIR) {
@@ -287,7 +375,16 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onArmorStandManipulate(event: PlayerArmorStandManipulateEvent) {
         event.playerItem.let { ItemIdUtil.ensureUniqueId(plugin, it)?.let { id -> db.recordSeenAsync(id) } }
-        event.armorStandItem.let { ItemIdUtil.ensureUniqueId(plugin, it)?.let { id -> db.recordSeenAsync(id) } }
+        event.armorStandItem.let {
+            ItemIdUtil.ensureUniqueId(plugin, it)?.let { id ->
+                db.recordSeenAsync(id)
+                val idStr = id.toString()
+                val now = System.currentTimeMillis()
+                val existing = knownItems[idStr]
+                val first = existing?.firstSeenMs ?: now
+                knownItems[idStr] = ItemLocation(ownerArmorStand, locationString(event.rightClicked.location), now, first)
+            }
+        }
     }
 
     // ========== DISPENSER - TAG ==========
@@ -300,7 +397,15 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onInventoryMoveItem(event: InventoryMoveItemEvent) {
         val item = event.item
-        ItemIdUtil.ensureUniqueId(plugin, item)?.let { db.recordSeenAsync(it) }
+        val id = ItemIdUtil.ensureUniqueId(plugin, item)
+        if (id != null) {
+            db.recordSeenAsync(id)
+            val now = System.currentTimeMillis()
+            val locStr = holderLocationString(event.destination.holder ?: event.source.holder)
+            val existing = knownItems[id.toString()]
+            val first = existing?.firstSeenMs ?: now
+            knownItems[id.toString()] = ItemLocation(ownerContainer, locStr, now, first)
+        }
     }
 
     // ========== VEHICLE (CHEST MINECART) DESTROY - TAG CONTENTS ==========
@@ -441,7 +546,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
         val msg = event.message.lowercase(Locale.getDefault()).trim()
         if (msg.startsWith("/clear") || msg.startsWith("/minecraft:clear")) {
             val player = event.player
-            // After command executes, adjust known items for this player
+            // After the command executes, adjust known items for this player
             plugin.server.scheduler.runTask(plugin, Runnable {
                 cleanupUnknownForPlayer(player)
             })
@@ -460,7 +565,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
             if (target != null) {
                 plugin.server.scheduler.runTask(plugin, Runnable { cleanupUnknownForPlayer(target) })
             } else {
-                // If no explicit target, cleanup all online players just in case
+                // If no explicit target, clean up all online players just in case
                 plugin.server.scheduler.runTask(plugin, Runnable {
                     plugin.server.onlinePlayers.forEach { cleanupUnknownForPlayer(it) }
                 })
@@ -528,12 +633,18 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     }
 
     // ========== DUPLICATE DETECTION ==========
-    private fun checkForDuplicates(itemUUID: String, player: Player) {
+    private fun checkForDuplicates(itemUUID: String, player: Player, tags: Set<String> = emptySet()) {
         val now = System.currentTimeMillis()
         val graceMs = plugin.config.getLong("movement-grace-ms", 750L).coerceAtLeast(0L)
+        // If this duplicate context is from creative and allowed, just map and exit
+        if (tags.contains("CREATIVE") && plugin.config.getBoolean("allow-creative-duplicates", true)) {
+            val existing = knownItems[itemUUID]
+            val first = existing?.firstSeenMs ?: now
+            knownItems[itemUUID] = ItemLocation(player.uniqueId, locationString(player.location), lastSeenMs = now, firstSeenMs = first)
+            return
+        }
         val current = ItemLocation(player.uniqueId, locationString(player.location), lastSeenMs = now, firstSeenMs = now)
-        val existing = knownItems.putIfAbsent(itemUUID, current)
-        if (existing == null) return
+        val existing = knownItems.putIfAbsent(itemUUID, current) ?: return
 
         // Same holder: refresh timestamp/location
         if (existing.playerUUID == current.playerUUID) {
@@ -550,12 +661,13 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
         fun proceedRemoval(keepKnown: Boolean) {
             val debounceMs = plugin.config.getLong("duplicate-alert-debounce-ms", 2000L).coerceAtLeast(0L)
             val last = lastAlertTs[itemUUID] ?: 0L
+            val tagSuffix = if (tags.isNotEmpty()) " [${tags.joinToString(",")}]" else ""
             if (now - last >= debounceMs) {
-                plugin.logger.warning("DUPLICATE DETECTED: Item $itemUUID found in multiple locations! Known: $existing New: $current")
+                plugin.logger.warning("DUPLICATE DETECTED$tagSuffix: Item $itemUUID found in multiple locations! Known: $existing New: $current")
                 if (plugin.config.getBoolean("alert-admins", true)) {
                     plugin.server.onlinePlayers
                         .filter { it.hasPermission("dupetrace.alerts") }
-                        .forEach { it.sendMessage("§c[DupeTrace] §fItem $itemUUID duplicated! Player: ${player.name}") }
+                        .forEach { it.sendMessage("§c[DupeTrace] §fItem $itemUUID duplicated$tagSuffix! Player: ${player.name}") }
                 }
                 lastAlertTs[itemUUID] = now
             }
@@ -587,7 +699,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
                     val knownTs = runCatching { db.getEarliestTransferTs(itemUUID, existing.playerUUID) }.getOrNull()
                     val currentTs = runCatching { db.getEarliestTransferTs(itemUUID, player.uniqueId) }.getOrNull()
                     val keepKnown = when {
-                        knownTs == null && currentTs == null -> inMemoryKeepKnown
+                        knownTs == null && currentTs == null -> true
                         knownTs == null -> false
                         currentTs == null -> true
                         else -> knownTs <= currentTs
@@ -620,7 +732,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
         } else {
             db.logItemTransferAsync(itemUUID, player.uniqueId, "AUTO_REMOVE_DUPLICATE", locationString(player.location))
         }
-        // Update in-memory mapping to reflect current owner (if any)
+        // Update in-memory mapping to reflect the current owner (if any)
         if (found >= 1) {
             knownItems[itemUUID] = ItemLocation(player.uniqueId, locationString(player.location), System.currentTimeMillis())
         } else {

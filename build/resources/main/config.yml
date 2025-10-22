@@ -17,6 +17,7 @@ auto-remove-duplicates: false
 keep-oldest-on-dup-remove: true  # When removing duplicates automatically, prefer keeping the holder with the earliest recorded interaction
 movement-grace-ms: 750  # Grace window to avoid false positives during rapid legitimate moves
 duplicate-alert-debounce-ms: 2000  # Suppress repeat alerts for the same item within this window
+allow-creative-duplicates: true  # If true, duplicates created in Creative mode are allowed (no alert/removal), but will be tagged as [CREATIVE] in logs
 
 # In-memory tracking safety
 known-items-ttl-ms: 600000  # TTL for known item entries (10 minutes) to avoid memory growth

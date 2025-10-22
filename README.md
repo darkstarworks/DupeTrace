@@ -121,5 +121,6 @@ If you need any adjustments (e.g., targeting a different Paper version or adding
 - keep-oldest-on-dup-remove: When auto-removal is enabled, prefer keeping the holder (player) with the earliest recorded interaction with the item (based on dupetrace_item_transfers timestamps). If the intended holder is offline, removal falls back to the current holder.
 - movement-grace-ms: Milliseconds to wait before treating a holder change as a duplicate (prevents false positives during legitimate rapid moves). Default 750.
 - duplicate-alert-debounce-ms: Minimum milliseconds between repeated duplicate alerts for the same item. Default 2000.
+- allow-creative-duplicates: If true, duplicates created in Creative mode are allowed (no alert/removal), and will be tagged as [CREATIVE] in logs/alerts when not allowed.
 - known-items-ttl-ms: Time-to-live for in-memory knownItems entries to avoid memory growth. Default 600000 (10 minutes).
 - inventory-open-scan-enabled: If false, skips full inventory scans on open to reduce overhead (defaults true).
