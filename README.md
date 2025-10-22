@@ -1,15 +1,16 @@
-# DupeTrace
+<img width="100" height="100" alt="dupetrace" src="https://github.com/user-attachments/assets/150a0965-cf8f-477c-a57f-8802e4ef7fde" /> 
 
-**A PaperMC plugin for detecting and preventing item duplication exploits in Minecraft**
+# $${\color{yellow}DupeTrace}$$ $${\color{yellow}v1.0}$$
 
-DupeTrace tracks non-stackable items using unique UUIDs and monitors their movements to detect when the same item appears in multiple locations simultaneously. Perfect for preventing duplication glitches on survival servers.
+_[pre-release]_
 
-`For Minecraft PaperMC [1.21.10] ` ` » ` ` Updated: 22 oct 2025`
+### **Duplication Detection Plugin, For PaperMC 1.21.10**
 
-## Features
+
+#### Features
 
 - 🔍 **Automatic Duplicate Detection**: Tracks all non-stackable items with unique IDs
-- 🗃️ **Database Persistence**: Supports both H2 (embedded) and PostgreSQL databases
+- 🗃️ **Database Persistence**: Supports both H2 (embedded) and PostgreSQL databases (recommended)
 - ⚡ **Real-time Monitoring**: Comprehensive event tracking across inventories, containers, and player interactions
 - 🛡️ **Auto-Removal**: Optional automatic removal of duplicated items
 - 🎨 **Creative Mode Support**: Configurable handling of Creative mode duplication
@@ -18,45 +19,81 @@ DupeTrace tracks non-stackable items using unique UUIDs and monitors their movem
 
 ---
 
-## Quick Start (For Server Admins)
+### Quick Start (For Server Admins)
 
-### Installation
+#### Installation
 
 1. Download `DupeTrace-1.0-paper.jar` from the [releases page](https://github.com/darkstarworks/DupeTrace/releases)
 2. Place the jar file in your server's `plugins/` directory
 3. Restart your server
 4. Configure settings in `plugins/DupeTrace/config.yml` (optional)
 
+### Discord & Support
+
+![flat](https://dcbadge.limes.pink/api/server/https://discord.gg/aWMU2JNXex?style=flat)
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/darkstarworks)
+
 ### Basic Configuration
 
 After first run, edit `plugins/DupeTrace/config.yml`:
 
 ```yaml
-# Database Configuration
 database:
-  type: h2  # Use 'h2' for embedded database or 'postgres' for PostgreSQL
+  # DupeTrace currently supports only h2 or PostgreSQL
+  # PostgreSQL is HIGHLY recommended if you have an active server!
+  type: h2 # default: h2
   h2:
+    # File path without extension; H2 will create .mv.db automatically
     file: plugins/DupeTrace/data/dupetrace
-  postgres:  # Only needed if using PostgreSQL
+  postgres:
+    # The requirements for PostgreSQL are already included with PaperMC,
+    # you just need to provide a (remote) database
     url: jdbc:postgresql://localhost:5432/dupe_trace
     user: postgres
     password: postgres
+  # If true, logs A LOT more info to the console
+  debug: false # default: false
 
-# Duplicate Detection Settings
-broadcast-duplicates: true          # Log duplicates to console
-alert-admins: true                  # Send alerts to players with dupetrace.alerts permission
-auto-remove-duplicates: false       # Automatically remove duplicated items (USE WITH CAUTION)
-keep-oldest-on-dup-remove: true    # When auto-removing, keep the copy held by the earliest interactor
+# Duplicate detection and notifications
+broadcast-duplicates: true # default: true
 
-# Fine-Tuning
-movement-grace-ms: 750              # Grace period for legitimate rapid item movements (prevents false positives)
-duplicate-alert-debounce-ms: 2000   # Minimum time between duplicate alerts for the same item
-allow-creative-duplicates: true     # Allow duplicates in Creative mode (recommended: true)
-known-items-ttl-ms: 600000         # Memory cleanup interval (10 minutes)
+alert-admins: true # default: true
 
-# Performance
-scan-interval: 200                  # Periodic scan interval in ticks (200 = 10 seconds)
-inventory-open-scan-enabled: true   # Scan inventories when opened
+# -- BETA FEATURE --
+# Automatically removing duplicates COULD in very rare cases be triggered by false positives.
+# Please make sure to set [keep-oldest-on-dup-remove: true]
+auto-remove-duplicates: true # default: true
+
+# When above [auto-remove-duplicates: true], keep
+# the oldest recorded version of the item/block
+keep-oldest-on-dup-remove: true # default: true
+
+# The Grace Window is a brief moment where the anti-cheat is a bit more forgiving.
+# It's designed to ignore very fast, legitimate movements (like quick turns or jumps)
+# lower number = stronger detection, but more mistakes
+# higher number = weaker detection, but less mistakes
+movement-grace-ms: 750 # default: 750
+
+# Suppress repeat alerts for the same item within this window
+duplicate-alert-debounce-ms: 2000 # default (milliseconds): 2000
+
+# If [allow-creative-duplicates: true],
+# duplicates created in Creative mode are allowed (no alert/removal),
+# but will be tagged as [CREATIVE] in logs
+allow-creative-duplicates: true # default: true
+
+# In-memory tracking safety to avoid memory growth
+# TTL for known item entries (10 minutes)
+known-items-ttl-ms: 600000 # default (milliseconds): 600000
+
+# Scanning interval configuration in ticks (200 = 10 seconds)
+scan-interval: 200 # default: 200
+
+# If [inventory-open-scan-enabled: false], full inventory scans
+# every time an inventory is opened will be disabled.
+# This reduces overhead significantly on large active playerbases
+inventory-open-scan-enabled: true # default: true
 ```
 
 ### Permissions
