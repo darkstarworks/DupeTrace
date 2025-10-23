@@ -5,6 +5,9 @@
 # 1) Set your PostgreSQL connection under database.postgres (url/user/password).
 # 2) Restart the server (recommended) after saving changes.
 #
+#  The requirements for PostgreSQL are already included with PaperMC,
+#         you just need to provide a (remote) database
+#
 # About defaults:
 # - Every setting below keeps a short inline comment showing its default value.
 # - If unsure, you can keep the defaults; they are safe for most servers.
@@ -27,53 +30,37 @@
 #
 # Tip: Values ending in -ms are milliseconds.
 
-database:
-  # DupeTrace uses PostgreSQL only
+database: # DupeTrace uses PostgreSQL only!
   postgres:
-    # The requirements for PostgreSQL are already included with PaperMC,
-    # you just need to provide a (remote) database
-    url: jdbc:postgresql://45.77.251.178:5432/dupe_trace
+    url: jdbc:postgresql://localhost:5432/dupe_trace
     user: postgres
     password: postgres
-  # If true, logs A LOT more info to the console
+    pool-size: 10 # default: 10 (max concurrent connections, 1-50)
+    connection-timeout-ms: 30000 # default: 30000 (connection timeout in milliseconds)
   debug: false # default: false
 
-# Duplicate detection and notifications
 broadcast-duplicates: true # default: true
-
 alert-admins: true # default: true
 
 # -- BETA FEATURE --
 # Automatically removing duplicates COULD in very rare cases be triggered by false positives.
-# Please make sure to set [keep-oldest-on-dup-remove: true]
 auto-remove-duplicates: true # default: true
-
-# When above [auto-remove-duplicates: true], keep
-# the oldest recorded version of the item/block
 keep-oldest-on-dup-remove: true # default: true
+# When above [auto-remove-duplicates: true], it keeps the oldest recorded version of the item/block
 
-# The Grace Window is a brief moment where the anti-cheat is a bit more forgiving.
-# It's designed to ignore very fast, legitimate movements (like quick turns or jumps)
 # lower number = stronger detection, but more mistakes
-# higher number = weaker detection, but less mistakes
+# higher number = weaker detection, but fewer mistakes
 movement-grace-ms: 750 # default: 750
-
-# Suppress repeat alerts for the same item within this window
 duplicate-alert-debounce-ms: 2000 # default (milliseconds): 2000
-
-# If [allow-creative-duplicates: true],
-# duplicates created in Creative mode are allowed (no alert/removal),
-# but will be tagged as [CREATIVE] in logs
 allow-creative-duplicates: true # default: true
-
-# In-memory tracking safety to avoid memory growth
-# TTL for known item entries (10 minutes)
 known-items-ttl-ms: 600000 # default (milliseconds): 600000
-
-# Scanning interval configuration in ticks (200 = 10 seconds)
 scan-interval: 200 # default: 200
 
-# If [inventory-open-scan-enabled: false], full inventory scans
-# every time an inventory is opened will be disabled.
-# This reduces overhead significantly on large active playerbases
+# If [inventory-open-scan-enabled: false], full inventory scans will be disabled.
+# This reduces overhead Significantly on large active playerbases
 inventory-open-scan-enabled: true # default: true
+
+# Discord webhook integration for duplicate alerts
+discord:
+  enabled: false # default: false
+  webhook-url: "" # Your Discord webhook URL (see: Server Settings -> Integrations -> Webhooks)

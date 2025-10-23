@@ -2,6 +2,7 @@ package io.github.darkstarworks.dupeTrace.listener
 
 import io.github.darkstarworks.dupeTrace.db.DatabaseManager
 import io.github.darkstarworks.dupeTrace.util.ItemIdUtil
+import io.github.darkstarworks.dupeTrace.webhook.DiscordWebhook
 import org.bukkit.*
 import org.bukkit.block.Container
 import org.bukkit.entity.EntityType
@@ -34,6 +35,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     private val knownItems = ConcurrentHashMap<String, ItemLocation>()
     private val pendingAnvilInputs = ConcurrentHashMap<UUID, Set<String>>()
     private val lastAlertTs = ConcurrentHashMap<String, Long>()
+    private val discordWebhook = DiscordWebhook(plugin)
 
     // Pseudo owners for non-player holders
     private val ownerItemFrame: UUID = UUID(0L, 1L)
@@ -57,18 +59,55 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     private fun getUniqueId(item: ItemStack): String? = ItemIdUtil.getId(plugin, item)?.toString()
 
     private fun tagAndLog(player: Player, item: ItemStack, action: String, loc: Location) {
+        // Determine if this item is being assigned a UUID for the first time
+        val wasNew = ItemIdUtil.getId(plugin, item) == null
         val id = ItemIdUtil.ensureUniqueId(plugin, item) ?: return
         // If this item is a Shulker Box or bundle, ensure inner contents are tagged too
         deepTagShulkerContentsIfAny(item)
         deepTagBundleContentsIfAny(item)
         db.recordSeenAsync(id)
         db.logItemTransferAsync(id.toString(), player.uniqueId, action, locationString(loc))
+        if (wasNew) {
+            // Notify watchers with permission about newly assigned UUIDs
+            sendItemAssignedMessage(player, item, id)
+        }
         checkForDuplicates(id.toString(), player)
+    }
+
+    private fun sendItemAssignedMessage(player: Player, item: ItemStack, id: UUID) {
+        try {
+            val watchers = plugin.server.onlinePlayers.filter { it.hasPermission("dupetrace.alerts") }
+            if (watchers.isEmpty()) return
+
+            val fullId = id.toString()
+            val shortId = fullId.take(8)
+
+            val itemName = item.itemMeta?.displayName()?.let { net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(it).ifBlank { null } }
+                ?: item.type.name.lowercase().replace('_', ' ').split(' ').joinToString(" ") { it.replaceFirstChar { c -> c.titlecase() } }
+
+            val mm = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+            val component = mm.deserialize(
+                "<white>[<dark_aqua><player><white>] received <gold><item> <dark_gray>[<hover:show_text:'<blue><full>'><click:suggest_command:'<cmd>'><short><dark_gray>]",
+                net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("player", player.name),
+                net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("item", itemName),
+                net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("full", fullId),
+                net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("short", shortId),
+                net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("cmd", "/dupetest uuid $fullId")
+            )
+
+            watchers.forEach { it.sendMessage(component) }
+        } catch (_: Throwable) {
+            // Fallback plain text if components are unavailable
+            val msg = "[${player.name}] received ${item.type} [$id]"
+            plugin.server.onlinePlayers
+                .filter { it.hasPermission("dupetrace.alerts") }
+                .forEach { it.sendMessage(msg) }
+        }
     }
 
     private fun deepTagShulkerContentsIfAny(item: ItemStack) {
         try {
-            val meta = item.itemMeta
+            val meta = item.itemMeta ?: return
             if (meta is org.bukkit.inventory.meta.BlockStateMeta) {
                 val bs = meta.blockState
                 if (bs is org.bukkit.block.ShulkerBox) {
@@ -95,7 +134,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
 
     private fun deepTagBundleContentsIfAny(item: ItemStack) {
         try {
-            val meta = item.itemMeta
+            val meta = item.itemMeta ?: return
             if (meta is org.bukkit.inventory.meta.BundleMeta) {
                 val items = meta.items
                 var changed = false
@@ -149,7 +188,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
         player.inventory.contents.filterNotNull().forEach { getUniqueId(it)?.let(present::add) }
         player.inventory.armorContents.filterNotNull().forEach { getUniqueId(it)?.let(present::add) }
         val off = player.inventory.itemInOffHand
-        if (off.type != Material.AIR) getUniqueId(off)?.let(present::add)
+        if (!off.type.isAir) getUniqueId(off)?.let(present::add)
         player.enderChest.contents.filterNotNull().forEach { getUniqueId(it)?.let(present::add) }
         // Remove known items mapped to this player that are not present anymore
         knownItems.entries.removeIf { (id, loc) -> loc.playerUUID == player.uniqueId && !present.contains(id) }
@@ -177,6 +216,13 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
             val item = inv.getItem(i) ?: continue
             ItemIdUtil.ensureUniqueId(plugin, item)?.let { db.recordSeenAsync(it) }
         }
+    }
+
+    // ========== CRAFTER BLOCK - TAG (1.21+) ==========
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onCrafterCraft(event: org.bukkit.event.block.CrafterCraftEvent) {
+        val result = event.result
+        ItemIdUtil.ensureUniqueId(plugin, result)?.let { db.recordSeenAsync(it) }
     }
 
     // ========== SMITHING TABLE - TAG ==========
@@ -359,7 +405,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
         val frame = event.rightClicked as ItemFrame
         val now = System.currentTimeMillis()
         val frameItem = frame.item
-        if (frameItem.type != Material.AIR) {
+        if (!frameItem.type.isAir) {
             ItemIdUtil.ensureUniqueId(plugin, frameItem)?.let {
                 db.recordSeenAsync(it)
                 val idStr = it.toString()
@@ -369,7 +415,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
             }
         }
         val handItem = event.player.inventory.itemInMainHand
-        if (handItem.type != Material.AIR) {
+        if (!handItem.type.isAir) {
             ItemIdUtil.ensureUniqueId(plugin, handItem)?.let { db.recordSeenAsync(it) }
         }
     }
@@ -387,6 +433,15 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
                 val first = existing?.firstSeenMs ?: now
                 knownItems[idStr] = ItemLocation(ownerArmorStand, locationString(event.rightClicked.location), now, first)
             }
+        }
+    }
+
+    // ========== LECTERN - TAG BOOKS ==========
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onPlayerTakeBook(event: PlayerTakeLecternBookEvent) {
+        val book = event.book
+        if (book != null && !book.type.isAir) {
+            tagAndLog(event.player, book, "LECTERN_TAKE", event.lectern.location)
         }
     }
 
@@ -591,9 +646,17 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
     // ========== PERIODIC SCANNING ==========
     fun startPeriodicScan() {
         val interval = plugin.config.getLong("scan-interval", 200L).coerceAtLeast(20L)
-        plugin.server.scheduler.runTaskTimer(plugin, Runnable {
-            plugin.server.onlinePlayers.chunked(10).forEach { batch ->
-                batch.forEach { scanPlayerInventory(it) }
+        plugin.server.scheduler.runTaskTimerAsynchronously(plugin, Runnable {
+            // Snapshot players on async thread to avoid concurrent modification
+            val players = plugin.server.onlinePlayers.toList()
+            players.chunked(10).forEach { batch ->
+                batch.forEach { player ->
+                    try {
+                        scanPlayerInventory(player)
+                    } catch (e: Exception) {
+                        plugin.logger.warning("Error scanning inventory for ${player.name}: ${e.message}")
+                    }
+                }
             }
         }, interval, interval)
     }
@@ -605,6 +668,10 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
             val ttlMs = plugin.config.getLong("known-items-ttl-ms", 600_000L).coerceAtLeast(60_000L)
             val cutoff = System.currentTimeMillis() - ttlMs
             knownItems.entries.removeIf { it.value.lastSeenMs < cutoff }
+            // Also cleanup old alert timestamps to prevent memory leak
+            lastAlertTs.entries.removeIf { (uuid, ts) ->
+                ts < cutoff || !knownItems.containsKey(uuid)
+            }
         }, period, period)
     }
 
@@ -626,7 +693,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
         }
         // offhand
         val off = player.inventory.itemInOffHand
-        if (off.type != Material.AIR && ItemIdUtil.getId(plugin, off) == null) {
+        if (!off.type.isAir && ItemIdUtil.getId(plugin, off) == null) {
             ItemIdUtil.ensureUniqueId(plugin, off)?.let { db.recordSeenAsync(it) }
         }
         // ender chest
@@ -674,6 +741,24 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
                         .filter { it.hasPermission("dupetrace.alerts") }
                         .forEach { it.sendMessage("§c[DupeTrace] §fItem $itemUUID duplicated$tagSuffix! Player: ${player.name}") }
                 }
+
+                // Send Discord webhook if enabled
+                if (plugin.config.getBoolean("discord.enabled", false)) {
+                    // Try to get item type from player's inventory
+                    val itemType = player.inventory.contents
+                        .filterNotNull()
+                        .firstOrNull { ItemIdUtil.getId(plugin, it)?.toString() == itemUUID }
+                        ?.type?.name ?: "Unknown"
+
+                    discordWebhook.sendDuplicateAlert(
+                        itemUUID,
+                        player.name,
+                        itemType,
+                        current.location,
+                        tags
+                    )
+                }
+
                 lastAlertTs[itemUUID] = now
             }
 

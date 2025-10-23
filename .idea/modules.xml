@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/DupeTrace.main.iml" filepath="$PROJECT_DIR$/.idea/modules/DupeTrace.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/DupeTrace.test.iml" filepath="$PROJECT_DIR$/.idea/modules/DupeTrace.test.iml" />
     </modules>
   </component>
 </project>
