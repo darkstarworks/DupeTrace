@@ -1,11 +1,8 @@
-<img width="100" height="100" alt="dupetrace" src="https://github.com/user-attachments/assets/150a0965-cf8f-477c-a57f-8802e4ef7fde" /> 
+<img width="600" height="110" alt="dupetrace-min" src="https://github.com/user-attachments/assets/72c72598-ffce-4db5-8357-d2ee63e203f6" />
 
-# $${\color{yellow}DupeTrace}$$ $${\color{yellow}v1.0.4}$$
+### **Item Duplication Detection Plugin, For PaperMC 1.21.10**
 
-_[pre-release]_
-
-### **Duplication Detection Plugin, For PaperMC 1.21.10**
-
+## v1.0.4 _[pre-release]_
 
 #### Features
 
@@ -112,17 +109,19 @@ inventory-open-scan-enabled: true # default: true
 ---
 ## Troubleshooting Q&A
 
-> #### Q: "Duplicate detected" but it's a false positive
-> #### A: Increase `movement-grace-ms` in config.yml to give more time for legitimate item transfers.
+```diff
+- "Duplicate detected" but it's a false positive
++ Increase `movement-grace-ms` in config.yml to give more time for legitimate item transfers.
 
-> #### Q: High memory usage
-> #### A: Reduce `known-items-ttl-ms` or `scan-interval` to decrease memory footprint.
+- High memory usage
++ Reduce `known-items-ttl-ms` or `scan-interval` to decrease memory footprint.
 
-> #### Q: Items not being tracked
-> #### A: Ensure the items are non-stackable (max stack size of 1). Stackable items like diamonds or stone cannot be tracked individually.
+- Items not being tracked
++ Ensure the items are non-stackable. Stackable blocks, items and consumables cannot be tracked individually.
 
-> #### Q: Database connection errors
-> #### A: Verify your database exists and the credentials are correct
+- Database connection errors
++ Verify your database exists and the credentials are correct
+```
 ---
 
 ## Developer DIY Guide
@@ -165,7 +164,7 @@ DupeTrace/
 ### Building from Source
 
 **Windows:**
-```bash
+```shell
 ./gradlew.bat clean build
 ```
 
@@ -187,7 +186,7 @@ Start a local Paper server with your plugin automatically loaded:
 
 The first run downloads the Paper server. The plugin is automatically loaded from your latest build.
 
----
+___
 
 ## Contributing
 
@@ -243,8 +242,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - `action` (VARCHAR): Action type (PICKUP, CRAFTED, INVENTORY_CLICK, etc.)
 - `location` (TEXT): World coordinates
 - `ts` (TIMESTAMP): Transfer timestamp
-
----
 
 ## Acknowledgments
 
