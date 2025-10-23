@@ -76,6 +76,8 @@ database: # DupeTrace uses PostgreSQL only!
     url: jdbc:postgresql://localhost:5432/dupe_trace
     user: postgres
     password: postgres
+    pool-size: 10 # default: 10 (max concurrent connections, 1-50)
+    connection-timeout-ms: 30000 # default: 30000 (connection timeout in milliseconds)
   debug: false # default: false
 
 broadcast-duplicates: true # default: true
@@ -88,7 +90,7 @@ keep-oldest-on-dup-remove: true # default: true
 # When above [auto-remove-duplicates: true], it keeps the oldest recorded version of the item/block
 
 # lower number = stronger detection, but more mistakes
-# higher number = weaker detection, but less mistakes
+# higher number = weaker detection, but fewer mistakes
 movement-grace-ms: 750 # default: 750
 duplicate-alert-debounce-ms: 2000 # default (milliseconds): 2000
 allow-creative-duplicates: true # default: true
@@ -98,6 +100,11 @@ scan-interval: 200 # default: 200
 # If [inventory-open-scan-enabled: false], full inventory scans will be disabled.
 # This reduces overhead Significantly on large active playerbases
 inventory-open-scan-enabled: true # default: true
+
+# Discord webhook integration for duplicate alerts
+discord:
+  enabled: false # default: false
+  webhook-url: "" # Your Discord webhook URL (see: Server Settings -> Integrations -> Webhooks)
 ```
 
 ### Permissions
