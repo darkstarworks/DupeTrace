@@ -265,7 +265,7 @@ Built with:
 - `kotlin-stdlib-jdk8` - Kotlin standard library
 - `HikariCP 5.1.0` - Database connection pooling
 - `PostgreSQL 42.7.4` - PostgreSQL JDBC driver
-- `adventure MiniMessage 4.25.0` - Minecraft Java UI Library
+- `adventure MiniMessage 4.17.0` - Minecraft Java UI Library
 
 ## Support Me - This Plugin is Free! ❤️
 https://www.ko-fi.com/darkstarworks
