@@ -100,7 +100,7 @@ known-items-ttl-ms: 300000 # Reduce to 5 minutes
 ### Fixed
 - H2 database URL path normalization to comply with H2 2.x; accepts './' or absolute paths and auto-prefixes relative paths to avoid startup failure.
 
-## [1.0] - 2025-01-XX
+## [1.0] - 2025-10-22
 
 ### Added
 - Comprehensive KDoc documentation for all public APIs
@@ -118,7 +118,7 @@ known-items-ttl-ms: 300000 # Reduce to 5 minutes
 ### Removed
 - Non-functional placeholder code in DupeTrace.kt onEnable() method
 
-## [0.8] - 2025-01-XX
+## [0.8] - 2025-10-22
 
 ### Added
 - Creative mode duplicate handling with `allow-creative-duplicates` configuration option
@@ -130,7 +130,7 @@ known-items-ttl-ms: 300000 # Reduce to 5 minutes
 - Refined event handling for better Creative mode detection
 - Updated duplicate detection to respect Creative mode context
 
-## [0.7] - 2025-01-XX
+## [0.7] - 2025-10-22
 
 ### Added
 - Advanced duplicate management configuration options:
@@ -145,7 +145,7 @@ known-items-ttl-ms: 300000 # Reduce to 5 minutes
 - Improved in-memory item tracking with automatic TTL-based cleanup
 - Mitigated false positives with configurable grace period
 
-## [0.6] - 2025-01-XX
+## [0.6] - 2025-10-22
 
 ### Added
 - `keep-oldest-on-dup-remove` configuration option to prefer keeping the item with the earliest recorded interaction when auto-removing duplicates
@@ -157,7 +157,7 @@ known-items-ttl-ms: 300000 # Reduce to 5 minutes
 - Enhanced duplicate removal logic to support oldest-first policy
 - Cleanup of edge cases in event handlers
 
-## [0.5] - 2025-01-XX
+## [0.5] - 2025-10-22
 
 ### Added
 - Expanded duplicate detection with additional event handlers
