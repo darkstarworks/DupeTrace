@@ -1,20 +1,14 @@
-# Gradle build outputs
 /build/
 **/build/
 /.gradle/
-
-# Kotlin/Java build artifacts
 *.class
-
-# Common build/output folders
 /out/
 /bin/
 /dist/
 /target/
 /tmp/
 /temp/
-
-# IDE project files (IntelliJ IDEA, Android Studio, Eclipse, VS Code)
+# IDE project files (❤️ ty maybeizen)
 .idea/
 *.iml
 *.iws
@@ -24,25 +18,17 @@
 .project
 .settings/
 .metadata/
-
-# Logs and error dumps
 logs/
 *.log
 hs_err_pid*
 replay_pid*.hprof
-
-# Environment files (keep example)
 .env
 .env.*
 !.env.example
-
-# OS-specific files
 .DS_Store
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
-
-# Caches
 .cache/
 .kotlinc/
