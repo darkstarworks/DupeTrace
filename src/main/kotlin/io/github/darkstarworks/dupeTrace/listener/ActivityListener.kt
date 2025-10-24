@@ -668,7 +668,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
             val ttlMs = plugin.config.getLong("known-items-ttl-ms", 600_000L).coerceAtLeast(60_000L)
             val cutoff = System.currentTimeMillis() - ttlMs
             knownItems.entries.removeIf { it.value.lastSeenMs < cutoff }
-            // Also cleanup old alert timestamps to prevent memory leak
+            // Also clean up old alert timestamps to prevent memory leak
             lastAlertTs.entries.removeIf { (uuid, ts) ->
                 ts < cutoff || !knownItems.containsKey(uuid)
             }
@@ -744,7 +744,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
 
                 // Send Discord webhook if enabled
                 if (plugin.config.getBoolean("discord.enabled", false)) {
-                    // Try to get item type from player's inventory
+                    // Try to get item type from the player's inventory
                     val itemType = player.inventory.contents
                         .filterNotNull()
                         .firstOrNull { ItemIdUtil.getId(plugin, it)?.toString() == itemUUID }

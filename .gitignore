@@ -1,48 +1,48 @@
-# Gradle
-.gradle/
-build/
-!gradle/wrapper/gradle-wrapper.jar
+# Gradle build outputs
+/build/
+**/build/
+/.gradle/
 
-# IntelliJ IDEA
+# Kotlin/Java build artifacts
+*.class
+
+# Common build/output folders
+/out/
+/bin/
+/dist/
+/target/
+/tmp/
+/temp/
+
+# IDE project files (IntelliJ IDEA, Android Studio, Eclipse, VS Code)
 .idea/
 *.iml
-*.ipr
 *.iws
-out/
-
-# Eclipse
+*.ipr
+.vscode/
 .classpath
 .project
 .settings/
-bin/
+.metadata/
 
-# NetBeans
-nbproject/
-nbbuild/
-dist/
-nbdist/
+# Logs and error dumps
+logs/
+*.log
+hs_err_pid*
+replay_pid*.hprof
 
-# VS Code
-.vscode/
+# Environment files (keep example)
+.env
+.env.*
+!.env.example
 
-# macOS
+# OS-specific files
 .DS_Store
-
-# Windows
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+$RECYCLE.BIN/
 
-# Kotlin
-.kotlin/
-
-# Plugin data
-plugins/DupeTrace/
-
-# Logs
-*.log
-
-# Test servers
-run/
-server/
-test-server/
+# Caches
+.cache/
+.kotlinc/
