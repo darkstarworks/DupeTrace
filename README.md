@@ -2,7 +2,7 @@
 
 ### **Item Duplication Detection Plugin, For PaperMC 1.21.10**
 
-## v1.1.0
+## v1.2.0
 
 #### Features
 
@@ -10,7 +10,7 @@
 - 🗃️ **Database Persistence**: Supports ONLY PostgreSQL databases (for size and speed reasons)
 - ⚡ **Real-time Monitoring**: Comprehensive event tracking across inventories, containers, and player interactions
 - 🛡️ **Auto-Removal**: Optional automatic removal of duplicated items
-- 📣 **Discord Webhook Alerts** (optional): Send duplicate alerts to your Discord server
+- 📣 **Customizable Discord Webhooks**: Fully customizable alerts with embeds, mentions, and rate limiting
 - 🎨 **Creative Mode Support**: Configurable handling of Creative mode duplication
 - 📊 **Advanced Tracking**: Deep scanning of Shulker Boxes and Bundles
 - 🔧 **Highly Configurable**: Fine-tune detection sensitivity and behavior
@@ -21,7 +21,7 @@
 
 #### Installation
 
-1. Download `DupeTrace-1.1.0-paper.jar` from the [releases page](https://github.com/darkstarworks/DupeTrace/releases)
+1. Download `DupeTrace-1.2.0-paper.jar` from the [releases page](https://github.com/darkstarworks/DupeTrace/releases)
 2. Place the jar file in your server's `plugins/` directory
 3. Restart your server
 4. Configure settings in `plugins/DupeTrace/config.yml` (optional)
@@ -32,7 +32,15 @@
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/darkstarworks)
 
-To enable Discord alerts, set `discord.enabled: true` and `discord.webhook-url` in `config.yml`.
+#### Discord Webhook Setup
+
+DupeTrace features fully customizable Discord webhook alerts. To enable:
+
+1. In Discord: **Server Settings** → **Integrations** → **Webhooks** → **New Webhook**
+2. Copy the webhook URL
+3. In `config.yml`, set `discord.enabled: true` and paste your webhook URL
+
+**Quick test:** Run `/dupetest discord test` in-game to verify your setup.
 
 ### Basic Configuration
 
@@ -101,11 +109,79 @@ scan-interval: 200 # default: 200
 # This reduces overhead Significantly on large active playerbases
 inventory-open-scan-enabled: true # default: true
 
-# Discord webhook integration for duplicate alerts
+# Discord webhook integration (see full options below)
 discord:
-  enabled: false # default: false
-  webhook-url: "" # Your Discord webhook URL (see: Server Settings -> Integrations -> Webhooks)
+  enabled: false
+  webhook-url: ""
 ```
+
+### Discord Webhook Configuration
+
+The Discord webhook system is fully customizable:
+
+```yaml
+discord:
+  enabled: false
+  webhook-url: "https://discord.com/api/webhooks/..."
+
+  # Bot appearance
+  username: "DupeTrace"
+  avatar-url: ""  # Custom avatar URL
+
+  # Embed customization
+  embed:
+    color: "#FF0000"  # Hex color
+    title: "🚨 Duplicate Item Detected"  # Supports placeholders
+    description: ""  # Optional description
+
+    # Toggle fields
+    show-player: true
+    show-item-type: true
+    show-item-uuid: true
+    show-full-uuid: false  # Show full UUID instead of shortened
+    show-location: true
+    show-timestamp: true
+
+    # Custom field names
+    field-name-player: "Player"
+    field-name-item-type: "Item Type"
+    field-name-uuid: "Item UUID"
+    field-name-location: "Location"
+
+    # Footer & images
+    footer-text: "DupeTrace v{version}"
+    footer-icon-url: ""
+    thumbnail-url: ""
+    image-url: ""
+
+  # Mention/ping settings
+  mentions:
+    enabled: false
+    role-id: ""  # Discord role ID to ping
+    user-ids: ""  # Comma-separated user IDs
+    content: "{role_mention} {user_mentions}"
+
+  # Rate limiting (prevents Discord API abuse)
+  rate-limit:
+    enabled: true
+    max-per-minute: 30
+    queue-max-size: 100
+```
+
+#### Available Placeholders
+
+Use these in `title`, `description`, and `mentions.content`:
+
+| Placeholder | Description |
+|-------------|-------------|
+| `{player}` | Player name |
+| `{item_type}` | Item material type |
+| `{uuid_short}` | First 8 characters of UUID |
+| `{uuid_full}` | Complete UUID |
+| `{location}` | World:x,y,z coordinates |
+| `{version}` | Plugin version |
+| `{role_mention}` | Role ping (mentions only) |
+| `{user_mentions}` | User pings (mentions only) |
 
 ### Permissions
 
@@ -119,6 +195,9 @@ discord:
 - `/dupetest history <uuid> [limit]` - View full transfer log (default limit: 50)
 - `/dupetest stats` - View plugin and database statistics
 - `/dupetest search <player>` - List tracked items associated with a player
+- `/dupetest discord test` - Send a test message to your Discord webhook
+- `/dupetest discord status` - View webhook status and rate limit info
+- `/dupetest discord reload` - Reload webhook configuration
 - Aliases: `/dt`, `/dtrace`
 - Tab-completion supported for all subcommands
 
@@ -137,6 +216,21 @@ discord:
 
 - Database connection errors
 + Verify your database exists and the credentials are correct
+
+- Discord webhook not sending messages
++ 1. Check `discord.enabled: true` in config.yml
++ 2. Verify webhook URL is correct (test in browser returns JSON)
++ 3. Run `/dupetest discord test` to see detailed error messages
++ 4. Check server console for [Discord] error logs
+
+- Discord rate limit warnings
++ Increase `discord.rate-limit.max-per-minute` or the queue will buffer alerts.
++ Default 30/min matches Discord's limit. Alerts exceeding this are queued.
+
+- Discord mentions not working
++ 1. Enable Developer Mode in Discord (Settings → Advanced)
++ 2. Right-click role/user → Copy ID
++ 3. Set `mentions.enabled: true` and paste the ID
 ```
 ---
 
@@ -156,14 +250,16 @@ DupeTrace/
 ├── src/main/kotlin/io/github/darkstarworks/dupeTrace/
 │   ├── DupeTrace.kt                 # Main plugin class
 │   ├── command/
-│   │   └── DupeTestCommand.kt       # Test command implementation
+│   │   └── DupeTestCommand.kt       # Admin commands
 │   ├── db/
 │   │   └── DatabaseManager.kt       # Database operations
 │   ├── listener/
 │   │   ├── ActivityListener.kt      # Comprehensive event tracking
 │   │   └── InventoryScanListener.kt # Inventory monitoring
-│   └── util/
-│       └── ItemIdUtil.kt            # UUID tagging utilities
+│   ├── util/
+│   │   └── ItemIdUtil.kt            # UUID tagging utilities
+│   └── webhook/
+│       └── DiscordWebhook.kt        # Discord integration
 ├── src/main/resources/
 │   ├── config.yml                   # Default configuration
 │   └── plugin.yml                   # Plugin metadata
@@ -189,7 +285,7 @@ DupeTrace/
 ./gradlew clean build
 ```
 
-The shaded jar for deployment will be at: `build/libs/DupeTrace-1.1.0-paper.jar`
+The shaded jar for deployment will be at: `build/libs/DupeTrace-1.2.0-paper.jar`
 
 ### Running a Development Server
 

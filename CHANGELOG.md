@@ -5,6 +5,93 @@ All notable changes to DupeTrace will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-12-04 - Customizable Discord Webhooks
+
+### Added
+- **Fully Customizable Discord Webhooks**: Complete overhaul of Discord integration
+  - **Bot Appearance**: Custom username and avatar URL
+  - **Embed Customization**:
+    - Configurable embed color (hex format)
+    - Custom title with placeholder support
+    - Optional description field
+    - Toggle individual fields (player, item type, UUID, location, timestamp)
+    - Custom field names for localization
+    - Footer with text and icon
+    - Thumbnail and image support
+  - **Mention System**:
+    - Role mentions by ID
+    - User mentions (comma-separated IDs)
+    - Custom mention message template
+  - **Rate Limiting**:
+    - Configurable max alerts per minute (default: 30)
+    - Alert queuing when rate limited
+    - Configurable queue size (default: 100)
+    - Automatic queue processing
+  - **Template Placeholders**: `{player}`, `{item_type}`, `{uuid_short}`, `{uuid_full}`, `{location}`, `{version}`, `{role_mention}`, `{user_mentions}`
+
+- **New Discord Commands**:
+  - `/dupetest discord test` - Send a test message to verify webhook configuration
+  - `/dupetest discord status` - View webhook status and rate limit info
+  - `/dupetest discord reload` - Reload webhook configuration without restart
+  - Tab completion for all discord subcommands
+
+### Changed
+- Discord webhook is now a shared instance across all components
+- Improved error handling with detailed error messages
+- Rate limiting now respects Discord's API limits (30/minute)
+- Webhook requests include proper timeouts (10s connect/read)
+- User-Agent header now includes plugin version
+
+### Technical
+- Refactored `DiscordWebhook.kt` with ~430 lines of new code
+- Added `AlertData` data class for queue management
+- Thread-safe rate limiting using `AtomicInteger` and `AtomicLong`
+- JSON payload building with proper escaping
+- URI-based URL handling (fixes deprecation warning)
+
+### Configuration
+New config options under `discord`:
+```yaml
+discord:
+  username: "DupeTrace"
+  avatar-url: ""
+  embed:
+    color: "#FF0000"
+    title: "🚨 Duplicate Item Detected"
+    description: ""
+    show-player: true
+    show-item-type: true
+    show-item-uuid: true
+    show-full-uuid: false
+    show-location: true
+    show-timestamp: true
+    field-name-player: "Player"
+    field-name-item-type: "Item Type"
+    field-name-uuid: "Item UUID"
+    field-name-location: "Location"
+    footer-text: ""
+    footer-icon-url: ""
+    thumbnail-url: ""
+    image-url: ""
+  mentions:
+    enabled: false
+    role-id: ""
+    user-ids: ""
+    content: "{role_mention} {user_mentions}"
+  rate-limit:
+    enabled: true
+    max-per-minute: 30
+    queue-max-size: 100
+```
+
+### Upgrade Notes
+- Existing `discord.enabled` and `discord.webhook-url` settings are preserved
+- New options use sensible defaults; no action required for basic usage
+- To customize, add new options to your existing config.yml
+- Run `/dupetest discord test` after upgrade to verify webhook still works
+
+---
+
 ## [1.1.0] - 2025-10-23 - PaperMC 1.21.10 Optimization Release
 
 ### Added

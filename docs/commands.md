@@ -15,6 +15,9 @@ All the tools you need to test, monitor, and investigate item duplication on you
 | `/dupetest history <uuid> [limit]` | View full transfer log |
 | `/dupetest stats` | View plugin statistics |
 | `/dupetest search <player>` | List items associated with a player |
+| `/dupetest discord test` | Send a test webhook message |
+| `/dupetest discord status` | View webhook status |
+| `/dupetest discord reload` | Reload webhook configuration |
 
 ---
 
@@ -198,14 +201,96 @@ Use /dupetest history <uuid> for details
 
 ---
 
+## `/dupetest discord`
+
+**Aliases:** `/dt discord`, `/dtrace discord`
+
+Manage and test Discord webhook integration. Has three subcommands.
+
+---
+
+### `/dupetest discord test`
+
+Sends a test message to your configured Discord webhook to verify it's working.
+
+#### Usage
+```
+/dupetest discord test
+```
+
+#### Example
+```
+> /dt discord test
+Sending test message to Discord...
+✓ Test message sent successfully!
+```
+
+If something's wrong, you'll see an error message explaining the issue (e.g., "Discord webhook is disabled in config" or "Webhook URL is not configured").
+
+#### When to Use This
+- After setting up your webhook for the first time
+- After changing the webhook URL
+- When debugging why alerts aren't appearing in Discord
+
+---
+
+### `/dupetest discord status`
+
+Shows the current status of the Discord webhook system, including rate limit information.
+
+#### Usage
+```
+/dupetest discord status
+```
+
+#### Example
+```
+> /dt discord status
+=== Discord Webhook Status ===
+Enabled: Yes
+Rate Limit: Sent: 5/30 this minute | Queued: 0
+```
+
+#### What You'll See
+- **Enabled:** Whether the webhook is active
+- **Rate Limit:** How many alerts have been sent this minute vs. the limit
+- **Queued:** Number of alerts waiting to be sent (if rate limited)
+
+---
+
+### `/dupetest discord reload`
+
+Reloads the Discord webhook configuration from `config.yml` without restarting the server.
+
+#### Usage
+```
+/dupetest discord reload
+```
+
+#### Example
+```
+> /dt discord reload
+✓ Discord webhook configuration reloaded!
+Status: Enabled
+```
+
+#### When to Use This
+- After editing Discord settings in `config.yml`
+- To apply changes without a full server restart
+
+**Note:** This only reloads Discord-related settings. For other config changes, you'll still need to restart the server.
+
+---
+
 ## Tab Completion
 
 DupeTrace supports tab completion on all commands, so you can just type `/dt` and press **Tab** to see your options.
 
 ### Examples
 ```
-/dt <tab>          → give, uuid, history, stats, search
+/dt <tab>          → give, uuid, history, stats, search, discord
 /dt search <tab>   → lists online player names
+/dt discord <tab>  → test, status, reload
 ```
 
 ---

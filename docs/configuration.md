@@ -199,6 +199,10 @@ When enabled, scans a player's inventory every time they open a container, chest
 
 ## Discord Integration
 
+DupeTrace features a **fully customizable Discord webhook** system with embeds, mentions, and rate limiting.
+
+### Basic Setup
+
 ```yaml
 discord:
   enabled: false
@@ -219,14 +223,222 @@ Your Discord webhook URL. To get one:
 3. Click **New Webhook**
 4. Copy the webhook URL and paste it here
 
-**Example:**
+**Test it:** After configuring, run `/dupetest discord test` in-game to verify your webhook works!
+
+---
+
+### Bot Appearance
+
+```yaml
+discord:
+  username: "DupeTrace"
+  avatar-url: ""
+```
+
+### `discord.username`
+**Default:** `"DupeTrace"`
+
+The name that appears as the webhook sender in Discord.
+
+### `discord.avatar-url`
+**Default:** `""` (empty = Discord default)
+
+URL to a custom avatar image for the webhook. Leave empty to use Discord's default.
+
+---
+
+### Embed Customization
+
+```yaml
+discord:
+  embed:
+    color: "#FF0000"
+    title: "🚨 Duplicate Item Detected"
+    description: ""
+    show-player: true
+    show-item-type: true
+    show-item-uuid: true
+    show-full-uuid: false
+    show-location: true
+    show-timestamp: true
+    field-name-player: "Player"
+    field-name-item-type: "Item Type"
+    field-name-uuid: "Item UUID"
+    field-name-location: "Location"
+    footer-text: ""
+    footer-icon-url: ""
+    thumbnail-url: ""
+    image-url: ""
+```
+
+### `discord.embed.color`
+**Default:** `"#FF0000"` (red)
+
+Hex color code for the embed sidebar. Supports formats like `#FF0000` or `FF0000`.
+
+### `discord.embed.title`
+**Default:** `"🚨 Duplicate Item Detected"`
+
+The embed title. Supports placeholders (see below).
+
+### `discord.embed.description`
+**Default:** `""` (empty)
+
+Optional description text below the title. Supports placeholders.
+
+### Field Visibility Options
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `show-player` | `true` | Show player name field |
+| `show-item-type` | `true` | Show item type field |
+| `show-item-uuid` | `true` | Show item UUID field |
+| `show-full-uuid` | `false` | Show full UUID instead of shortened |
+| `show-location` | `true` | Show coordinates field |
+| `show-timestamp` | `true` | Show timestamp in embed |
+
+### Custom Field Names
+
+Customize field labels for localization:
+
+| Setting | Default |
+|---------|---------|
+| `field-name-player` | `"Player"` |
+| `field-name-item-type` | `"Item Type"` |
+| `field-name-uuid` | `"Item UUID"` |
+| `field-name-location` | `"Location"` |
+
+### Footer & Images
+
+| Setting | Description |
+|---------|-------------|
+| `footer-text` | Text at bottom of embed (supports `{version}`) |
+| `footer-icon-url` | Small icon next to footer |
+| `thumbnail-url` | Small image on right side of embed |
+| `image-url` | Large image at bottom of embed |
+
+---
+
+### Template Placeholders
+
+Use these in `title`, `description`, and `mentions.content`:
+
+| Placeholder | Description | Example |
+|-------------|-------------|---------|
+| `{player}` | Player name | `Steve` |
+| `{item_type}` | Item material | `DIAMOND_SWORD` |
+| `{uuid_short}` | First 8 chars of UUID | `8f3c5a1d` |
+| `{uuid_full}` | Complete UUID | `8f3c5a1d-2b4e-...` |
+| `{location}` | World coordinates | `world:123,64,-456` |
+| `{version}` | Plugin version | `1.2.0` |
+
+**Example custom title:**
+```yaml
+title: "⚠️ Dupe Alert: {item_type} by {player}"
+```
+
+---
+
+### Mention/Ping Settings
+
+```yaml
+discord:
+  mentions:
+    enabled: false
+    role-id: ""
+    user-ids: ""
+    content: "{role_mention} {user_mentions}"
+```
+
+### `discord.mentions.enabled`
+**Default:** `false`
+
+Enable Discord mentions/pings in duplicate alerts.
+
+### `discord.mentions.role-id`
+**Default:** `""` (empty)
+
+Discord role ID to ping. To get a role ID:
+1. Enable **Developer Mode** in Discord (Settings → Advanced)
+2. Right-click the role → **Copy ID**
+
+### `discord.mentions.user-ids`
+**Default:** `""` (empty)
+
+Comma-separated list of Discord user IDs to ping.
+Example: `"123456789012345678,987654321098765432"`
+
+### `discord.mentions.content`
+**Default:** `"{role_mention} {user_mentions}"`
+
+Message content where mentions appear (outside the embed). Available placeholders:
+- `{role_mention}` – The role ping
+- `{user_mentions}` – User pings
+- Plus all standard placeholders
+
+---
+
+### Rate Limiting
+
+```yaml
+discord:
+  rate-limit:
+    enabled: true
+    max-per-minute: 30
+    queue-max-size: 100
+```
+
+### `discord.rate-limit.enabled`
+**Default:** `true`
+
+Enable rate limiting to prevent Discord API abuse. **Highly recommended!**
+
+### `discord.rate-limit.max-per-minute`
+**Default:** `30`
+
+Maximum alerts sent per minute. Discord's limit is 30/minute per webhook, so don't go higher.
+
+### `discord.rate-limit.queue-max-size`
+**Default:** `100`
+
+When rate limited, alerts queue up. This sets the max queue size. Oldest alerts are dropped if exceeded.
+
+---
+
+### Complete Discord Example
+
 ```yaml
 discord:
   enabled: true
-  webhook-url: "https://discord.com/api/webhooks/123456789/abcdefg..."
-```
+  webhook-url: "https://discord.com/api/webhooks/123456789/abc..."
 
-Now every dupe alert will ping your Discord channel. Pretty neat, right?
+  username: "DupeGuard"
+  avatar-url: "https://example.com/logo.png"
+
+  embed:
+    color: "#FF4444"
+    title: "⚠️ Duplicate Detected: {item_type}"
+    description: "A duplicate item was found on your server!"
+    show-player: true
+    show-item-type: true
+    show-item-uuid: true
+    show-full-uuid: false
+    show-location: true
+    show-timestamp: true
+    footer-text: "DupeTrace v{version}"
+    thumbnail-url: "https://example.com/warning.png"
+
+  mentions:
+    enabled: true
+    role-id: "123456789012345678"
+    user-ids: ""
+    content: "{role_mention} Dupe detected!"
+
+  rate-limit:
+    enabled: true
+    max-per-minute: 30
+    queue-max-size: 100
+```
 
 ---
 

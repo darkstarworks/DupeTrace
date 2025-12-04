@@ -36,7 +36,7 @@
 - 🗃️ **PostgreSQL Database**: Enterprise-grade persistence handles millions of records without slowdown
 - ⚡ **Real-time Monitoring**: Comprehensive event tracking across 30+ Bukkit events
 - 🛡️ **Auto-Removal**: Optional automatic removal of duplicated items (keeps the oldest legitimate copy)
-- 📣 **Discord Webhook Alerts**: Send duplicate alerts to your Discord server with formatted embeds
+- 📣 **Customizable Discord Webhooks**: Fully customizable alerts with embeds, mentions, and rate limiting
 - 🎨 **Creative Mode Support**: Configurable handling of Creative mode duplication
 - 📊 **Deep Container Scanning**: Recursively tracks items inside Shulker Boxes and Bundles
 - 🔧 **Highly Configurable**: Fine-tune detection sensitivity, grace periods, and performance settings
@@ -72,7 +72,7 @@
 <br>
 
 ### Commands
- 
+
 | command | description |
 | --- | --- |
 | `/dupetest give` | Give yourself a Diamond Sword tagged with a unique ID |
@@ -80,6 +80,9 @@
 | `/dupetest history <uuid> [limit]` | View full transfer log (default limit: 50) |
 | `/dupetest stats` | View plugin and database statistics |
 | `/dupetest search <player>` | List tracked items associated with a player |
+| `/dupetest discord test` | Send a test message to verify webhook |
+| `/dupetest discord status` | View webhook status and rate limit info |
+| `/dupetest discord reload` | Reload webhook configuration |
 
 Command aliases: `/dt` & `/dtrace`
 

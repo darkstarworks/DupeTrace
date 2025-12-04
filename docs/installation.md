@@ -26,7 +26,7 @@ Move the downloaded `.jar` file into your server's `plugins/` folder. You know t
 ```
 your-server/
 ├── plugins/
-│   ├── DupeTrace-1.1.0-paper.jar  ← Right here!
+│   ├── DupeTrace-1.2.0-paper.jar  ← Right here!
 │   └── (your other plugins)
 ├── server.jar
 └── ...

@@ -60,7 +60,69 @@ scan-interval: 200 # default: 200
 # This reduces overhead Significantly on large active playerbases
 inventory-open-scan-enabled: true # default: true
 
-# Discord webhook integration for duplicate alerts
+# ==============================
+# Discord Webhook Integration
+# ==============================
+# Send customizable alerts to your Discord server when duplicates are detected.
+# To set up: Discord Server Settings -> Integrations -> Webhooks -> New Webhook
 discord:
   enabled: false # default: false
-  webhook-url: "" # Your Discord webhook URL (see: Server Settings -> Integrations -> Webhooks)
+  webhook-url: "" # Your Discord webhook URL
+
+  # Bot appearance in Discord
+  username: "DupeTrace" # default: DupeTrace
+  avatar-url: "" # Custom avatar URL (leave empty for default Discord avatar)
+
+  # Embed customization
+  embed:
+    # Color for duplicate alerts (hex format with # or without, e.g., "#FF0000" or "FF0000")
+    color: "#FF0000" # default: #FF0000 (red)
+
+    # Title template - supports placeholders: {player}, {item_type}, {uuid_short}, {uuid_full}
+    title: "🚨 Duplicate Item Detected" # default: 🚨 Duplicate Item Detected
+
+    # Description template (optional) - supports same placeholders as title
+    # Leave empty for no description
+    description: ""
+
+    # Choose which fields to display in the embed
+    show-player: true # default: true
+    show-item-type: true # default: true
+    show-item-uuid: true # default: true (shows shortened UUID)
+    show-full-uuid: false # default: false (show full UUID instead of shortened)
+    show-location: true # default: true
+    show-timestamp: true # default: true
+
+    # Custom field names (leave empty for defaults)
+    field-name-player: "Player" # default: Player
+    field-name-item-type: "Item Type" # default: Item Type
+    field-name-uuid: "Item UUID" # default: Item UUID
+    field-name-location: "Location" # default: Location
+
+    # Footer customization
+    footer-text: "" # Leave empty for no footer, supports {version} placeholder
+    footer-icon-url: "" # Small icon next to footer text
+
+    # Thumbnail (small image on the right side of embed)
+    thumbnail-url: "" # Leave empty for no thumbnail
+
+    # Large image at bottom of embed
+    image-url: "" # Leave empty for no image
+
+  # Mention/ping settings
+  mentions:
+    enabled: false # default: false
+    # Role ID to ping (right-click role in Discord -> Copy ID, requires Developer Mode)
+    role-id: ""
+    # User IDs to ping (comma-separated, e.g., "123456789,987654321")
+    user-ids: ""
+    # Message content before embed (where mentions appear)
+    # Supports placeholders: {role_mention}, {user_mentions}, {player}, {item_type}
+    content: "{role_mention} {user_mentions}"
+
+  # Rate limiting to prevent Discord API abuse
+  rate-limit:
+    enabled: true # default: true
+    max-per-minute: 30 # default: 30 (Discord limit is 30/minute per webhook)
+    # When rate limited, alerts are queued and sent when possible
+    queue-max-size: 100 # default: 100 (max queued alerts, oldest dropped if exceeded)

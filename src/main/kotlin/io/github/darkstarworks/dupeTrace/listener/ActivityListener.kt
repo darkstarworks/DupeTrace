@@ -29,13 +29,16 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseManager) : Listener {
+class ActivityListener(
+    private val plugin: JavaPlugin,
+    private val db: DatabaseManager,
+    private val discordWebhook: DiscordWebhook
+) : Listener {
 
     // ========== TRACK KNOWN ITEMS - IN MEMORY ==========
     private val knownItems = ConcurrentHashMap<String, ItemLocation>()
     private val pendingAnvilInputs = ConcurrentHashMap<UUID, Set<String>>()
     private val lastAlertTs = ConcurrentHashMap<String, Long>()
-    private val discordWebhook = DiscordWebhook(plugin)
 
     // Pseudo owners for non-player holders
     private val ownerItemFrame: UUID = UUID(0L, 1L)
@@ -743,7 +746,7 @@ class ActivityListener(private val plugin: JavaPlugin, private val db: DatabaseM
                 }
 
                 // Send Discord webhook if enabled
-                if (plugin.config.getBoolean("discord.enabled", false)) {
+                if (discordWebhook.isEnabled()) {
                     // Try to get item type from the player's inventory
                     val itemType = player.inventory.contents
                         .filterNotNull()

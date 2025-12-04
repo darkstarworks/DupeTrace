@@ -150,7 +150,40 @@ dataSource = HikariDataSource(hikari)
 
 ---
 
-### 6. **Periodic Scanning & Memory Management**
+### 6. **Discord Webhook Integration**
+
+The `DiscordWebhook` class provides fully customizable Discord notifications:
+
+```kotlin
+class DiscordWebhook(private val plugin: JavaPlugin) {
+    private val alertQueue = ConcurrentLinkedQueue<AlertData>()
+    private val sentThisMinute = AtomicInteger(0)
+
+    fun sendDuplicateAlert(itemUUID: String, playerName: String, ...) {
+        if (!isEnabled()) return
+        // Queue alert for rate-limited sending
+        queueAlert(AlertData(...))
+    }
+}
+```
+
+**Key Features:**
+- **Customizable embeds**: Color, title, fields, footer, images all configurable
+- **Template placeholders**: `{player}`, `{item_type}`, `{uuid_short}`, etc.
+- **Mention support**: Role and user pings with custom content
+- **Rate limiting**: Respects Discord's 30/minute limit with alert queuing
+- **Thread-safe**: Uses `AtomicInteger` and `ConcurrentLinkedQueue`
+
+**Rate Limiting Flow:**
+1. Alert comes in → added to queue
+2. Background task checks queue every second
+3. If under rate limit → send immediately
+4. If at limit → stay in queue until next minute
+5. Queue overflow → oldest alerts dropped
+
+---
+
+### 7. **Periodic Scanning & Memory Management**
 
 Two scheduled tasks run in the background:
 
@@ -234,7 +267,13 @@ Removes stale entries from the in-memory cache to prevent memory leaks.
         ▼                ▼
     Continue       Alert admins
                    Auto-remove (if enabled)
-                   Send Discord webhook
+                   Queue Discord webhook alert
+                        │
+                        ▼
+               ┌────────────────────────┐
+               │ DiscordWebhook queues  │
+               │ alert with rate limit  │
+               └────────────────────────┘
 ```
 
 ### Plugin Shutdown
