@@ -23,6 +23,7 @@ Grants access to **all** DupeTrace commands:
 - `/dupetest history`
 - `/dupetest stats`
 - `/dupetest search`
+- `/dupetest discord` (test, status, reload)
 
 ### Who Should Have This?
 

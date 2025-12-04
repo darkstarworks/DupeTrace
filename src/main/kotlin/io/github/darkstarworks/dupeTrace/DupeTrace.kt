@@ -4,6 +4,7 @@ import io.github.darkstarworks.dupeTrace.command.DupeTestCommand
 import io.github.darkstarworks.dupeTrace.db.DatabaseManager
 import io.github.darkstarworks.dupeTrace.listener.ActivityListener
 import io.github.darkstarworks.dupeTrace.listener.InventoryScanListener
+import io.github.darkstarworks.dupeTrace.webhook.DiscordWebhook
 import org.bukkit.plugin.java.JavaPlugin
 
 /**
@@ -60,15 +61,18 @@ class DupeTrace : JavaPlugin() {
             db = DatabaseManager(this)
             db.init()
 
+            // Create shared Discord webhook instance
+            val discordWebhook = DiscordWebhook(this)
+
             // Register listeners
             server.pluginManager.registerEvents(InventoryScanListener(this, db), this)
-            val activityListener = ActivityListener(this, db)
+            val activityListener = ActivityListener(this, db, discordWebhook)
             server.pluginManager.registerEvents(activityListener, this)
             activityListener.startPeriodicScan()
             activityListener.startKnownItemsCleanup()
 
             // Register commands
-            val dupeTestCommand = DupeTestCommand(this, db)
+            val dupeTestCommand = DupeTestCommand(this, db, discordWebhook)
             getCommand("dupetest")?.setExecutor(dupeTestCommand)
             getCommand("dupetest")?.tabCompleter = dupeTestCommand
 

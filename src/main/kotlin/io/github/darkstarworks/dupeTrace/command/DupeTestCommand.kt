@@ -2,6 +2,7 @@ package io.github.darkstarworks.dupeTrace.command
 
 import io.github.darkstarworks.dupeTrace.db.DatabaseManager
 import io.github.darkstarworks.dupeTrace.util.ItemIdUtil
+import io.github.darkstarworks.dupeTrace.webhook.DiscordWebhook
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.command.Command
@@ -14,7 +15,11 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.text.SimpleDateFormat
 import java.util.*
 
-class DupeTestCommand(private val plugin: JavaPlugin, private val db: DatabaseManager) : CommandExecutor, TabCompleter {
+class DupeTestCommand(
+    private val plugin: JavaPlugin,
+    private val db: DatabaseManager,
+    private val discordWebhook: DiscordWebhook
+) : CommandExecutor, TabCompleter {
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
 
@@ -30,6 +35,7 @@ class DupeTestCommand(private val plugin: JavaPlugin, private val db: DatabaseMa
             "history" -> handleHistory(sender, args)
             "stats" -> handleStats(sender)
             "search" -> handleSearch(sender, args)
+            "discord" -> handleDiscord(sender, args)
             else -> sendHelp(sender)
         }
         return true
@@ -163,6 +169,51 @@ class DupeTestCommand(private val plugin: JavaPlugin, private val db: DatabaseMa
         })
     }
 
+    private fun handleDiscord(sender: CommandSender, args: Array<out String>) {
+        if (args.size < 2) {
+            sendDiscordHelp(sender)
+            return
+        }
+
+        when (args[1].lowercase()) {
+            "test" -> {
+                sender.sendMessage("§eSending test message to Discord...")
+                plugin.server.scheduler.runTaskAsynchronously(plugin, Runnable {
+                    val result = discordWebhook.sendTestMessage()
+                    plugin.server.scheduler.runTask(plugin, Runnable {
+                        if (result.contains("success", ignoreCase = true)) {
+                            sender.sendMessage("§a$result")
+                        } else {
+                            sender.sendMessage("§c$result")
+                        }
+                    })
+                })
+            }
+            "status" -> {
+                val enabled = discordWebhook.isEnabled()
+                sender.sendMessage("§6=== Discord Webhook Status ===")
+                sender.sendMessage("§7Enabled: ${if (enabled) "§aYes" else "§cNo"}")
+                if (enabled) {
+                    sender.sendMessage("§7Rate Limit: §f${discordWebhook.getRateLimitStatus()}")
+                }
+            }
+            "reload" -> {
+                plugin.reloadConfig()
+                sender.sendMessage("§aDiscord webhook configuration reloaded!")
+                val enabled = discordWebhook.isEnabled()
+                sender.sendMessage("§7Status: ${if (enabled) "§aEnabled" else "§cDisabled"}")
+            }
+            else -> sendDiscordHelp(sender)
+        }
+    }
+
+    private fun sendDiscordHelp(sender: CommandSender) {
+        sender.sendMessage("§6=== Discord Webhook Commands ===")
+        sender.sendMessage("§e/dupetest discord test §7- Send a test message")
+        sender.sendMessage("§e/dupetest discord status §7- View webhook status")
+        sender.sendMessage("§e/dupetest discord reload §7- Reload webhook config")
+    }
+
     private fun sendHelp(sender: CommandSender) {
         sender.sendMessage("§6=== DupeTrace Commands ===")
         sender.sendMessage("§e/dupetest give §7- Give yourself a test item")
@@ -170,6 +221,7 @@ class DupeTestCommand(private val plugin: JavaPlugin, private val db: DatabaseMa
         sender.sendMessage("§e/dupetest history <uuid> [limit] §7- View full transfer log")
         sender.sendMessage("§e/dupetest stats §7- View plugin statistics")
         sender.sendMessage("§e/dupetest search <player> §7- List player's tracked items")
+        sender.sendMessage("§e/dupetest discord §7- Discord webhook commands")
     }
 
     override fun onTabComplete(
@@ -179,13 +231,21 @@ class DupeTestCommand(private val plugin: JavaPlugin, private val db: DatabaseMa
         args: Array<out String>
     ): List<String> {
         if (args.size == 1) {
-            return listOf("give", "uuid", "history", "stats", "search")
+            return listOf("give", "uuid", "history", "stats", "search", "discord")
                 .filter { it.startsWith(args[0].lowercase()) }
         }
-        if (args.size == 2 && args[0].equals("search", ignoreCase = true)) {
-            return Bukkit.getOnlinePlayers()
-                .map { it.name }
-                .filter { it.startsWith(args[1], ignoreCase = true) }
+        if (args.size == 2) {
+            when (args[0].lowercase()) {
+                "search" -> {
+                    return Bukkit.getOnlinePlayers()
+                        .map { it.name }
+                        .filter { it.startsWith(args[1], ignoreCase = true) }
+                }
+                "discord" -> {
+                    return listOf("test", "status", "reload")
+                        .filter { it.startsWith(args[1].lowercase()) }
+                }
+            }
         }
         return emptyList()
     }
