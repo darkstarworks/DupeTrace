@@ -5,6 +5,20 @@ All notable changes to DupeTrace will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-12-04 - Expanded Compatibility
+
+### Changed
+- **Expanded Minecraft Compatibility**: Now supports PaperMC 1.21.1+ (previously 1.21.10 only)
+  - Compiled against Paper API 1.21.1 for maximum backward compatibility
+  - Tested and verified on 1.21.1, 1.21.3, 1.21.4, 1.21.5, and 1.21.10
+- Fixed deprecated URL constructor warning (now uses URI.toURL())
+
+### Technical
+- Build target changed from `paper-api:1.21.10` to `paper-api:1.21.1`
+- No API changes - all existing functionality remains identical
+
+---
+
 ## [1.1.0] - 2025-10-23 - PaperMC 1.21.10 Optimization Release
 
 ### Added

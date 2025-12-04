@@ -3,7 +3,7 @@ package io.github.darkstarworks.dupeTrace.webhook
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.OutputStream
 import java.net.HttpURLConnection
-import java.net.URL
+import java.net.URI
 import java.nio.charset.StandardCharsets
 
 /**
@@ -107,7 +107,7 @@ class DiscordWebhook(private val plugin: JavaPlugin) {
     }
 
     private fun sendWebhook(url: String, jsonPayload: String) {
-        val connection = URL(url).openConnection() as HttpURLConnection
+        val connection = URI(url).toURL().openConnection() as HttpURLConnection
         try {
             connection.requestMethod = "POST"
             connection.setRequestProperty("Content-Type", "application/json")

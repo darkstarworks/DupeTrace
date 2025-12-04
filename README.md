@@ -111,9 +111,11 @@ known-items-ttl-ms: 300000 # Reduce to 5 minutes
 
 <br>
 
-### Dependencies
+### Requirements
 
-A (remote) PostgreSQL Database is required
+- **PaperMC 1.21.1+** (or any Paper fork like Purpur)
+- **Java 21+**
+- **PostgreSQL Database** (local or remote)
 
 <br>
 

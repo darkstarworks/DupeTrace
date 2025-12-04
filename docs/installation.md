@@ -6,7 +6,7 @@ Getting DupeTrace running on your server is easier than teaching a villager to t
 
 Before we start, make sure you've got:
 
-- ✅ A **PaperMC 1.21+** server (Spigot won't cut it, sorry!)
+- ✅ A **PaperMC 1.21.1+** server (Spigot won't cut it, sorry!)
 - ✅ **Java 21** installed
 - ✅ A **PostgreSQL database** (local or remote – we're flexible)
 - ✅ About 5 minutes of your time

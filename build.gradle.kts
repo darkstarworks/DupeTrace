@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.github.darkstarworks"
-version = "1.1.0"
+version = "1.2.0"
 
 repositories {
     mavenCentral()
@@ -15,7 +15,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.10-R0.1-SNAPSHOT")
+    // Compile against 1.21.1 for maximum compatibility (works on 1.21.1 through 1.21.x)
+    compileOnly("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
     // Database and pooling

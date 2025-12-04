@@ -30,7 +30,7 @@ DupeTrace/
 | Component | Technology |
 |-----------|-----------|
 | **Language** | Kotlin 1.9+ (targeting JVM 21) |
-| **Server Platform** | PaperMC 1.21+ |
+| **Server Platform** | PaperMC 1.21.1+ |
 | **Database** | PostgreSQL 12+ |
 | **Connection Pool** | HikariCP 5.1.0 |
 | **Build Tool** | Gradle 8.8 |
